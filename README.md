@@ -1,2 +1,2 @@
 # nogal.ee
-Nogal (Enterprise Edition) ORM escrito en PHP7 por el SENA para uso empresarial.
+Nogal (Enterprise Edition) ORM written in PHP 7.2 by the National Learning Service (SENA) for enterprise use.

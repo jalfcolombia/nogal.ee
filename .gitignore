@@ -1,0 +1,9 @@
+output/
+vendor/
+composer.lock
+.buildpath
+.project
+.settings/
+..gitignore.swp
+.idea/
+nbproject/

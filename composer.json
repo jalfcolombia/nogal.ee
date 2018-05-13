@@ -1,0 +1,50 @@
+{
+	"require" : {
+		"php" : ">=7.2.0",
+		"symfony/yaml" : "^4.0"
+	},
+	"name" : "sena/nogal.ee",
+	"description" : "Nogal (Enterprise Edition) Framework written in PHP7 by the National Learning Service (SENA) for enterprise use.",
+	"autoload" : {
+		"psr-4" : {
+			"NogalEE\\" : "src"
+		}
+	},
+	"type" : "project",
+	"homepage" : "https://jalfcolombia.github.io/nogal.ee/",
+	"license" : "MIT",
+	"minimum-stability" : "stable",
+	"authors" : [{
+			"name" : "Julian Andr�s Lasso Figueroa",
+			"email" : "jalasso69@misena.edu.co",
+			"role" : "Developer"
+		}, {
+			"name" : "Ivon Maritza Upegui Gomez",
+			"email" : "imupegui@misena.edu.co",
+			"role" : "Tester"
+		}
+	],
+	"keywords" : [
+		"orm",
+		"sena",
+		"nogal",
+		"php7",
+		"adsi",
+		"cta",
+		"lasso",
+		"jalf",
+		"jalfcolombia"
+	],
+	"support" : {
+		"email" : "jalasso69@misena.edu.co",
+		"issues" : "https://github.com/jalfcolombia/nogal.ee/issues",
+		"wiki" : "https://github.com/jalfcolombia/nogal.ee/wiki",
+		"source" : "https://github.com/jalfcolombia/nogal.ee/"
+	},
+	"repositories" : [{
+			"type" : "git",
+			"url" : "https://github.com/jalfcolombia/nogal.ee/",
+			"name" : "nogal.ee"
+		}
+	]
+}
