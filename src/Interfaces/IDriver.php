@@ -68,7 +68,7 @@ interface IDriver
      * @param array $condition
      * @return self
      */
-    public function innerJoin(string $next_table, array $condition);
+    public function innerJoin(string $next_table, array $condition = array());
     
     /**
      * 
@@ -124,7 +124,7 @@ interface IDriver
      * @param array $condition
      * @return self
      */
-    public function leftJoin(string $next_table, array $condition);
+    public function leftJoin(string $next_table, array $condition = array());
     
     /**
      * 
@@ -132,7 +132,7 @@ interface IDriver
      * @param array $condition
      * @return self
      */
-    public function leftOuterJoin(string $next_table, array $condition);
+    public function leftOuterJoin(string $next_table, array $condition = array());
     
     /**
      * 
@@ -140,7 +140,7 @@ interface IDriver
      * @param array $condition
      * @return self
      */
-    public function rightJoin(string $next_table, array $condition);
+    public function rightJoin(string $next_table, array $condition = array());
     
     /**
      * 
@@ -148,7 +148,7 @@ interface IDriver
      * @param array $condition
      * @return self
      */
-    public function rightOuterJoin(string $next_table, array $condition);
+    public function rightOuterJoin(string $next_table, array $condition = array());
     
     /**
      * 
@@ -196,12 +196,13 @@ interface IDriver
     public function where(string $condition, bool $raw = false, string $logical_operator = '=');
 
     /**
-     *
+     * 
      * @param string $type_condition
      * @param string $condition
      * @param bool $raw
+     * @param string $logical_operator
      */
-    public function condition(string $type_condition, string $condition, bool $raw = false, string $logical_operator = '=');
+    public function whereCondition(string $type_condition, string $condition, bool $raw = false, string $logical_operator = '=');
 
     /**
      *
@@ -229,10 +230,10 @@ interface IDriver
 
     /**
      *
-     * @param string $columns_and_values
+     * @param mixed $columns
      * @param bool $raw
      */
-    public function set(string $columns_and_values, bool $raw = false);
+    public function set($columns, bool $raw = false);
     
     /**
      * 
@@ -246,6 +247,15 @@ interface IDriver
      * @param bool $raw
      */
     public function having(string $condition, bool $raw = false);
+    
+    /**
+     *
+     * @param string $type_condition
+     * @param string $condition
+     * @param bool $raw
+     * @param string $logical_operator
+     */
+    public function havingCondition(string $type_condition, string $condition, bool $raw = false, string $logical_operator = '=');
     
     /**
      * 

@@ -43,21 +43,35 @@ class NQL implements IDriver
      * Valor para orden descendente
      */
     public const DESC = 'DESC';
-    
+
     public const JOIN = 'join';
+
     public const JOIN_INNER = 'innerJoin';
+
     public const JOIN_NATURAL = 'naturalJoin';
+
     public const JOIN_NATURAL_INNER = 'naturalInnerJoin';
+
     public const JOIN_NATURAL_LEFT = 'naturalLeftJoin';
+
     public const JOIN_NATURAL_LEFT_OUTER = 'naturalLeftOuterJoin';
+
     public const JOIN_NATURAL_RIGHT = 'naturalRightJoin';
+
     public const JOIN_NATURAL_RIGHT_OUTER = 'naturalRightOuterJoin';
+
     public const JOIN_LEFT = 'leftJoin';
+
     public const JOIN_LEFT_OUTER = 'leftOuterJoin';
+
     public const JOIN_RIGHT = 'rightJoin';
+
     public const JOIN_RIGHT_OUTER = 'rightOuterJoin';
+
     public const JOIN_CROSS = 'crossJoin';
+
     public const JOIN_FULL = 'fullJoin';
+
     public const JOIN_FULL_OUTER = 'fullOuterJoin';
 
     /**
@@ -76,16 +90,36 @@ class NQL implements IDriver
     private $driver_class;
 
     /**
+     * Variable que destinada a guardar una instancia de la clase NQL
+     *
+     * @var NQL
+     */
+    private static $instance = null;
+
+    /**
      * Constructor de la clase NQL
      *
-     * @param string|null $driver
+     * @param string $driver
      *            Controlador de base de datos a usar
      */
-    public function __construct(?string $driver = null)
+    public function __construct(string $driver)
     {
         $this->driver = $driver;
         $class = 'NogalEE\\Driver\\' . $driver;
         $this->driver_class = new $class();
+    }
+    
+    public function reset(): self
+    {
+        return $this->driver_class->reset();
+    }
+
+    public static function create(string $driver): NQL
+    {
+        if (self::$instance === null) {
+            self::$instance = new NQL($driver);
+        }
+        return self::$instance;
     }
 
     /**
@@ -120,11 +154,11 @@ class NQL implements IDriver
      *            opción permite enlazar (bind) con la clase PDOStatement
      * @return $this
      */
-    public function condition(string $typeCondition, string $condition, bool $raw = false, string $logical_operator = '='): NQL
+    /*public function condition(string $typeCondition, string $condition, bool $raw = false, string $logical_operator = '='): NQL
     {
         $this->driver_class->condition($typeCondition, $condition, $raw, $logical_operator);
         return $this;
-    }
+    }*/
 
     /**
      * Inicializa un SQL con la palabra clave DELETE
@@ -216,13 +250,13 @@ class NQL implements IDriver
     /**
      * Complementa una sentencia SQL inicializada con la palabra clave UPDATE
      *
-     * @param string $columnsAndValues
+     * @param mixed $columns
      * @param bool $raw
      * @return $this
      */
-    public function set(string $columnsAndValues, bool $raw = false): NQL
+    public function set($columns, bool $raw = false): NQL
     {
-        $this->driver_class->set($columnsAndValues, $raw);
+        $this->driver_class->set($columns, $raw);
         return $this;
     }
 
@@ -263,6 +297,12 @@ class NQL implements IDriver
         return $this;
     }
 
+    public function whereCondition(string $type_condition, string $condition, bool $raw = false, string $logical_operator = '='): NQL
+    {
+        $this->driver_class->whereCondition($type_condition, $condition, $raw, $logical_operator);
+        return $this;
+    }
+
     /**
      * Completa una sentencia SQL con la clausula JOIN
      *
@@ -289,7 +329,7 @@ class NQL implements IDriver
      *            array('using' => 'table_child.field2')
      * @return \NogalEE\NQL
      */
-    public function innerJoin(string $next_table, array $condition): NQL
+    public function innerJoin(string $next_table, array $condition = array()): NQL
     {
         $this->driver_class->innerJoin($next_table, $condition);
         return $this;
@@ -401,7 +441,7 @@ class NQL implements IDriver
      *            array('using' => 'table_child.field2')
      * @return \NogalEE\NQL
      */
-    public function leftJoin(string $next_table, array $condition): NQL
+    public function leftJoin(string $next_table, array $condition = array()): NQL
     {
         $this->driver_class->leftJoin($next_table, $condition);
         return $this;
@@ -417,7 +457,7 @@ class NQL implements IDriver
      *            array('using' => 'table_child.field2')
      * @return \NogalEE\NQL
      */
-    public function leftOuterJoin(string $next_table, array $condition): NQL
+    public function leftOuterJoin(string $next_table, array $condition = array()): NQL
     {
         $this->driver_class->leftOuterJoin($next_table, $condition);
         return $this;
@@ -433,7 +473,7 @@ class NQL implements IDriver
      *            array('using' => 'table_child.field2')
      * @return \NogalEE\NQL
      */
-    public function rightJoin(string $next_table, array $condition): NQL
+    public function rightJoin(string $next_table, array $condition = array()): NQL
     {
         $this->driver_class->rightJoin($next_table, $condition);
         return $this;
@@ -449,7 +489,7 @@ class NQL implements IDriver
      *            array('using' => 'table_child.field2')
      * @return \NogalEE\NQL
      */
-    public function rightOuterJoin(string $next_table, array $condition): NQL
+    public function rightOuterJoin(string $next_table, array $condition = array()): NQL
     {
         $this->driver_class->rightOuterJoin($next_table, $condition);
         return $this;
@@ -523,10 +563,10 @@ class NQL implements IDriver
         $this->driver_class->union($sql);
         return $this;
     }
-    
+
     /**
-     * 
-     * {@inheritDoc}
+     *
+     * {@inheritdoc}
      * @see \NogalEE\Interfaces\IDriver::groupBy()
      */
     public function groupBy(string $field_list): NQL
@@ -534,10 +574,10 @@ class NQL implements IDriver
         $this->driver_class->groupBy($field_list);
         return $this;
     }
-    
+
     /**
-     * 
-     * {@inheritDoc}
+     *
+     * {@inheritdoc}
      * @see \NogalEE\Interfaces\IDriver::having()
      */
     public function having(string $condition, bool $raw = false): NQL
@@ -545,11 +585,28 @@ class NQL implements IDriver
         $this->driver_class->having($condition, $raw);
         return $this;
     }
-    
+
+    public function havingCondition(string $type_condition, string $condition, bool $raw = false, string $logical_operator = '=')
+    {
+        $this->driver_class->havingCondition($type_condition, $condition, $raw, $logical_operator);
+        return $this;
+    }
+
+    /**
+     * Agrega texto crudo a la sentencia NQL
+     *
+     * @param string $text
+     * @return NQL
+     */
     public function addTextRaw(string $text): NQL
     {
         $this->driver_class->addTextRaw($text);
         return $this;
+    }
+
+    public function isQueryInConstruction(): bool
+    {
+        return $this->driver_class->isQueryInConstruction();
     }
 
     /**

@@ -76,7 +76,7 @@ class Nogal
      * <b>user</b> Usuario de la base de datos.<br>
      * <b>password</b> Contraseña del usuario de la base de datos.<br>
      * <b>unix_socket</b> Ruta física del socket de conexión a la base de datos: Ejemplo /tmp/mysql.sock<br>
-     * <b>hash</b> Método a usar para encriptar las contraseñas en la base datos. Ejemplo md5, sha1<br><br>
+     * <b>hash</b> Método a usar para encriptar las contraseñas en la base datos. Ejemplo md5, sha512<br><br>
      * Para más información del HASH ver http://php.net/manual/en/function.hash.php<br>
      * <b>persistent</b> [opcional] Valor boobleano para definir si una conexión es persistente o no.<br>
      * El valor por defecto es "true".
@@ -407,6 +407,15 @@ class Nogal
         } finally {
             $this->deleteQueryParams();
         }
+    }
+    
+    protected function getColumnsLastQuery(bool $how_string = false)
+    {
+        $fields = str_replace(' ', '', preg_replace(array('/(\sAS\s(\w+))/g', '/^select /i', '/ from (\w|\s|\W|\t|\r)+/i'), array('','',''), $this->stmt->queryString));
+        if ($how_string === true) {
+            return $fields;
+        }
+        return explode(',', $fields);
     }
 
     /**

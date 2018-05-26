@@ -50,37 +50,14 @@ class Base extends Nogal
     {
         try {
             $this->nql->delete($table);
-            $where = 0;
-            foreach ($id as $logical_operator => $data) {
-                if ($logical_operator === NQL::_AND or $logical_operator === NQL::_OR) {
-                    foreach ($data as $column => $value) {
-                        if ($where > 0) {
-                            $this->nql->condition($logical_operator, $column);
-                        } else {
-                            $this->nql->where($column);
-                            $where ++;
-                        }
-                    }
-                } else {
-                    $column = $logical_operator;
-                    $value = $data;
-                    $this->nql->where($column);
-                }
-                
-                if (is_object($value) === true) {
-                    $this->setQueryParam(':' . $column, $value->value, $value->type);
-                } else {
-                    $this->setQueryParam(':' . $column, $value, $this->detectDataType($value));
-                }
-            }
-            echo $this->nql; exit();
+            $this->generateCondition('where', $id);
             $this->execute($this->nql);
         } catch (\Exception $exc) {
             $this->throwNewExceptionFromException($exc);
         }
     }
 
-    public function select(string $table, string $select_columns, array $joins = array(), array $where = array(), ?string $group_by = null, array $having = array(), ?string $order_by = null, object $page = null, object $class_object = null): array
+    /*public function select(string $table, string $select_columns, array $joins = array(), array $where = array(), ?string $group_by = null, array $having = array(), ?string $order_by = null, object $page = null, object $class_object = null): array
     {
         try {
             $this->nql->select($select_columns)->from($table);
@@ -89,7 +66,7 @@ class Base extends Nogal
                     $this->nql->$type($data->table, ((isset($data->condition)) ? $data->condition : array()));
                 }
             }
-
+            
             $this->generateCondition('where', $where);
             
             if ($group_by !== null) {
@@ -106,12 +83,13 @@ class Base extends Nogal
                 $this->nql->limit($page->limit)->offset($page->offset);
             }
             
-            echo $this->nql; exit();
+            echo $this->nql;
+            exit();
             return $this->query($this->nql, $class_object);
         } catch (\Exception $exc) {
             $this->throwNewExceptionFromException($exc);
         }
-    }
+    }*/
 
     public function save(string $table, array $columns_and_values, ?string $sequence = null): int
     {
@@ -129,14 +107,13 @@ class Base extends Nogal
             $columns = substr($columns, 0, - 2);
             $values = substr($values, 0, - 2);
             $this->nql->insert($table, $columns)->values($values);
-            echo $this->nql;exit();
             return $this->execute($sql, $sequence);
         } catch (\Exception $exc) {
             $this->throwNewExceptionFromException($exc);
         }
     }
 
-    public function update(string $table, array $set, array $where): bool
+    public function update(string $table, array $set, array $where): void
     {
         try {
             $this->nql->update($table);
@@ -151,62 +128,58 @@ class Base extends Nogal
             }
             $columns = substr($columns, 0, - 2);
             $this->nql->set($columns);
-            
             $this->generateCondition('where', $where);
-            
-            echo $this->nql;exit();
             $this->execute($this->nql);
-            return true;
         } catch (\Exception $exc) {
             $this->throwNewExceptionFromException($exc);
         }
     }
-    
+
     private function generateCondition(string $type, array $data): void
     {
         if (count($data) > 0) {
             $cicle = 0;
             // $condition - NQL::_AND NQL::_OR
             foreach ($data as $condition => $data) {
+                $data->raw = (isset($data->raw) === true) ? $data->raw : false;
                 if ($cicle === 0) {
-                    $this->nql->$type($data->condition, $data->raw);
+                    $this->nql->$type(((isset($data->condition) === true) ? $data->condition : $condition), $data->raw);
                     $cicle ++;
                 } else {
+                    $type_condition = "{$type}Condition";
                     if (is_array($data) === true) {
-                        $this->addCondition($condition, $data);
+                        $this->addCondition($condition, $data, $type_condition);
+                    } else if (isset($data->logical_operator) === true) {
+                        $this->nql->$type_condition($condition, $data->condition, $data->raw, $data->logical_operator);
                     } else {
-                        if (isset($data->logical_operator) === true) {
-                            $this->nql->condition($condition, $data->condition, $data->raw, $data->logical_operator);
-                        } else {
-                            $this->nql->condition($condition, $data->condition, $data->raw);
-                        }
+                        $this->nql->$type_condition($condition, $data->condition, $data->raw);
                     }
                 }
                 
                 if (isset($data->raw) === true and $data->raw === false) {
-                    $this->setQueryParam(':' . $data->condition, $data->value, $data->type);
+                    $this->setQueryParam(':' . ((isset($data->condition) === true) ? $data->condition : $condition), $data->value, ((isset($data->type) === true) ? $data->type : $this->detectDataType($data->value)));
                 }
             }
         }
     }
-    
-    private function addCondition(string $condition, array $where): void
+
+    private function addCondition(string $condition, array $where, $type_condition): void
     {
-        $this->nql->addTextRaw($condition . " ( ");
+        $this->nql->$type_condition("PRE", "{$condition} ( ");
         foreach ($where as $condition => $data) {
             if (is_array($data) === true) {
-                $this->addCondition($condition, $data);
+                $this->addCondition($condition, $data, $type_condition);
             } else {
                 if (isset($data->logical_operator) === true) {
-                    $this->nql->condition($condition, $data->condition, $data->raw, $data->logical_operator);
+                    $this->nql->$type_condition($condition, $data->condition, $data->raw, $data->logical_operator);
                 } else {
-                    $this->nql->condition($condition, $data->condition, $data->raw);
+                    $this->nql->$type_condition($condition, $data->condition, $data->raw);
                 }
                 if ($data->raw === false) {
                     $this->setQueryParam(':' . $data->condition, $data->value, $data->type);
                 }
             }
         }
-        $this->nql->addTextRaw(") ");
+        $this->nql->$type_condition("POS", ") ");
     }
 }
