@@ -25,49 +25,49 @@ use NogalEE\NQL;
  *
  * @author Julian Lasso <jalasso69@misena.edu.co>
  */
-class mysql implements IDriver
+class sqlsrv implements IDriver
 {
-    
+
     /**
      *
      * @var string
      */
     private $nql;
-    
+
     private $nqlSelect;
-    
+
     private $nqlInsert;
-    
+
     private $nqlUpdate;
-    
+
     private $nqlDelete;
-    
+
     private $nqlFrom;
-    
+
     private $nqlLimit;
-    
+
     private $nqlOffset;
-    
+
     private $nqlOrderBy;
-    
+
     private $nqlSet;
-    
+
     private $nqlValues;
-    
+
     private $nqlWhere;
-    
+
     private $nqlWhereConditions;
-    
+
     private $nqlJoins;
-    
+
     private $nqlUnions;
-    
+
     private $nqlHaving;
-    
+
     private $nqlHavingConditions;
-    
+
     private $nqlGroupBy;
-    
+
     public function __construct()
     {
         $this->reset();
@@ -95,7 +95,7 @@ class mysql implements IDriver
         $this->nqlGroupBy = '';
         return $this;
     }
-    
+
     /**
      *
      * @param string $table
@@ -106,7 +106,7 @@ class mysql implements IDriver
         $this->nqlDelete = "DELETE FROM {$table} ";
         return $this;
     }
-    
+
     /**
      *
      * @param string $table
@@ -117,7 +117,7 @@ class mysql implements IDriver
         $this->nqlFrom = "FROM {$table} ";
         return $this;
     }
-    
+
     /**
      *
      * @param string $table
@@ -129,7 +129,7 @@ class mysql implements IDriver
         $this->nqlInsert = "INSERT INTO {$table} ({$columns}) ";
         return $this;
     }
-    
+
     /**
      *
      * @param int $limit
@@ -137,10 +137,11 @@ class mysql implements IDriver
      */
     public function limit(float $limit): self
     {
-        $this->nqlLimit = "LIMIT {$limit} ";
+        $this->nqlOffset = "OFFSET 0 ROWS ";
+        $this->nqlLimit = "FETCH NEXT {$limit} ROWS ONLY ";
         return $this;
     }
-    
+
     /**
      *
      * @param int $offset
@@ -148,10 +149,10 @@ class mysql implements IDriver
      */
     public function offset(int $offset): self
     {
-        $this->nqlOffset = "OFFSET {$offset} ";
+        $this->nqlOffset = "OFFSET {$offset} ROWS ";
         return $this;
     }
-    
+
     /**
      *
      * {@inheritdoc}
@@ -162,7 +163,7 @@ class mysql implements IDriver
         $this->nqlOrderBy = "ORDER BY {$columns} ";
         return $this;
     }
-    
+
     /**
      *
      * @param string $columns
@@ -173,7 +174,7 @@ class mysql implements IDriver
         $this->nqlSelect = "SELECT {$columns} ";
         return $this;
     }
-    
+
     /**
      *
      * @param mixed $columns
@@ -184,20 +185,20 @@ class mysql implements IDriver
     {
         if ($raw === true) {
             $this->nqlSet = "SET {$columns} ";
-        } else if ($raw === false) {
+        } elseif ($raw === false) {
             if (is_string($columns) === true) {
                 $columns = explode(',', str_replace(' ', '', $columns));
             }
             $set = '';
             foreach ($columns as $column) {
-                $set .= $column . " = :{$column}, ";
+                $set .= $column . " = :" . str_replace(' ', '', ucwords(str_replace(array('_', '.'), ' ', $column))) . ", ";
             }
             $set = substr($set, 0, - 2);
             $this->nqlSet = "SET {$set} ";
         }
         return $this;
     }
-    
+
     /**
      *
      * @param string $table
@@ -208,7 +209,7 @@ class mysql implements IDriver
         $this->nqlUpdate = "UPDATE {$table} ";
         return $this;
     }
-    
+
     /**
      *
      * @param string $values
@@ -218,7 +219,7 @@ class mysql implements IDriver
         $this->nqlValues = "VALUES ({$values}) ";
         return $this;
     }
-    
+
     /**
      *
      * @param string $condition
@@ -230,11 +231,11 @@ class mysql implements IDriver
         if ($raw === true) {
             $this->nqlWhere = "WHERE {$condition} ";
         } elseif ($raw === false) {
-            $this->nqlWhere = "WHERE {$condition} {$logical_operator} :{$condition} ";
+            $this->nqlWhere = "WHERE {$condition} {$logical_operator} :{$this->camelCase($condition)} ";
         }
         return $this;
     }
-    
+
     /**
      *
      * @param string $type_condition
@@ -246,14 +247,14 @@ class mysql implements IDriver
     {
         if ($type_condition === 'PRE' or $type_condition === 'POS') {
             $this->nqlWhereConditions[] = $condition;
-        } else if ($raw === true) {
+        } elseif ($raw === true) {
             $this->nqlWhereConditions[] = (($type_condition === NQL::_AND or $type_condition === NQL::_OR) ? $type_condition . ' ' : '') . $condition . " ";
         } elseif ($raw === false) {
-            $this->nqlWhereConditions[] = (($type_condition === NQL::_AND or $type_condition === NQL::_OR) ? $type_condition . ' ' : '') . $condition . " {$logical_operator} :{$condition} ";
+            $this->nqlWhereConditions[] = (($type_condition === NQL::_AND or $type_condition === NQL::_OR) ? $type_condition . ' ' : '') . $condition . " {$logical_operator} :{$this->camelCase($condition)} ";
         }
         return $this;
     }
-    
+
     /**
      *
      * {@inheritdoc}
@@ -265,111 +266,111 @@ class mysql implements IDriver
         $nql = "{$type_join}JOIN {$next_table} ";
         if (isset($condition['on']) === true) {
             $nql .= "ON {$condition['on']} ";
-        } else if (isset($condition['using']) === true) {
+        } elseif (isset($condition['using']) === true) {
             $nql .= "USING ({$condition['using']}) ";
         }
         $this->nqlJoins[] = $nql;
         return $this;
     }
-    
+
     public function rightOuterJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'RIGHT OUTER');
     }
-    
+
     public function fullJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'FULL');
     }
-    
+
     public function fullOuterJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'FULL OUTER');
     }
-    
+
     public function crossJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'CROSS');
     }
-    
+
     public function naturalInnerJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'NATURAL INNER');
     }
-    
+
     public function rightJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'RIGHT');
     }
-    
+
     public function naturalJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'NATURAL');
     }
-    
+
     public function leftOuterJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'LEFT OUTER');
     }
-    
+
     public function innerJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'INNER');
     }
-    
+
     public function naturalRightOuterJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'NATURAL RIGHT OUTER');
     }
-    
+
     public function naturalLeftOuterJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'NATURAL LEFT OUTER');
     }
-    
+
     public function naturalRightJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'NATURAL RIGHT');
     }
-    
+
     public function naturalLeftJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'NATURAL LEFT');
     }
-    
+
     public function leftJoin(string $next_table, array $condition = array()): self
     {
         return $this->join($next_table, $condition, 'LEFT');
     }
-    
+
     public function groupBy(string $field_list): self
     {
         $this->nqlGroupBy = "GROUP BY {$field_list} ";
         return $this;
     }
-    
+
     public function union(string $sql): self
     {
         $this->nqlUnions[] = "UNION {$sql} ";
         return $this;
     }
-    
+
     public function unionAll(string $sql): self
     {
         $this->nqlUnions[] = "UNION ALL {$sql} ";
         return $this;
     }
-    
+
     public function having(string $condition, bool $raw = false, string $logical_operator = '='): self
     {
         if ($raw === true) {
             $this->nqlHaving = "HAVING {$condition} ";
         } elseif ($raw === false) {
-            $this->nqlHaving = "HAVING {$condition} {$logical_operator} :{$condition} ";
+            $this->nqlHaving = "HAVING {$condition} {$logical_operator} :{$this->camelCase($condition)} ";
         }
         return $this;
     }
-    
+
     /**
      *
      * {@inheritdoc}
@@ -379,14 +380,14 @@ class mysql implements IDriver
     {
         if ($type_condition === 'PRE' or $type_condition === 'POS') {
             $this->nqlHavingConditions[] = $condition;
-        } else if ($raw === true) {
+        } elseif ($raw === true) {
             $this->nqlHavingConditions[] = (($type_condition === NQL::_AND or $type_condition === NQL::_OR) ? $type_condition . ' ' : '') . $condition . " ";
-        } else if ($raw === false) {
-            $this->nqlHavingConditions[] = (($type_condition === NQL::_AND or $type_condition === NQL::_OR) ? $type_condition . ' ' : '') . $condition . " {$logical_operator} :{$condition} ";
+        } elseif ($raw === false) {
+            $this->nqlHavingConditions[] = (($type_condition === NQL::_AND or $type_condition === NQL::_OR) ? $type_condition . ' ' : '') . $condition . " {$logical_operator} :{$this->camelCase($condition)} ";
         }
         return $this;
     }
-    
+
     /**
      *
      * {@inheritdoc}
@@ -398,6 +399,14 @@ class mysql implements IDriver
         return $this;
     }
     
+    private function camelCase(string $string): string
+    {
+        if (isset($GLOBALS['cacheTempCamelCase'][$string]) === false) {
+            $GLOBALS['cacheTempCamelCase'][$string] = str_replace(' ', '', ucwords(str_replace(array('_', '.'), ' ', $string)));
+        }
+        return $GLOBALS['cacheTempCamelCase'][$string];
+    }
+
     /**
      *
      * @return string
@@ -421,15 +430,15 @@ class mysql implements IDriver
             foreach ($this->nqlUnions as $union) {
                 $nql .= $union;
             }
-            $nql .= $this->nqlOrderBy . $this->nqlLimit . $this->nqlOffset . $this->nqlGroupBy;
-        } else if ($this->nqlInsert !== '') {
+            $nql .= $this->nqlOrderBy . $this->nqlOffset . $this->nqlLimit . $this->nqlGroupBy;
+        } elseif ($this->nqlInsert !== '') {
             $nql = $this->nqlInsert . $this->nqlValues;
-        } else if ($this->nqlUpdate !== '') {
+        } elseif ($this->nqlUpdate !== '') {
             $nql = $this->nqlUpdate . $this->nqlSet . $this->nqlWhere;
             foreach ($this->nqlWhereConditions as $condition) {
                 $nql .= $condition;
             }
-        } else if ($this->nqlDelete !== '') {
+        } elseif ($this->nqlDelete !== '') {
             $nql = $this->nqlDelete . $this->nqlWhere;
             foreach ($this->nqlWhereConditions as $condition) {
                 $nql .= $condition;

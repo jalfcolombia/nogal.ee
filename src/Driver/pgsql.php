@@ -1,13 +1,21 @@
 <?php
 
 /**
- * This file is part of the NogalEE package.
+ * Copyright 2018 Servicio Nacional de Aprendizaje - SENA
  *
- * (c) Julian Lasso <jalasso69@misena.edu.co>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
+
 namespace NogalEE\Driver;
 
 use NogalEE\Interfaces\IDriver;
@@ -95,7 +103,6 @@ class pgsql implements IDriver
      */
     public function delete(string $table): self
     {
-        // $this->nql = "DELETE FROM {$table} ";
         $this->nqlDelete = "DELETE FROM {$table} ";
         return $this;
     }
@@ -107,7 +114,6 @@ class pgsql implements IDriver
      */
     public function from(string $table): self
     {
-        // $this->nql .= "FROM {$table} ";
         $this->nqlFrom = "FROM {$table} ";
         return $this;
     }
@@ -120,7 +126,6 @@ class pgsql implements IDriver
      */
     public function insert(string $table, string $columns): self
     {
-        // $this->nql = "INSERT INTO {$table} ({$columns}) ";
         $this->nqlInsert = "INSERT INTO {$table} ({$columns}) ";
         return $this;
     }
@@ -132,7 +137,6 @@ class pgsql implements IDriver
      */
     public function limit(float $limit): self
     {
-        // $this->nql .= "LIMIT {$limit} ";
         $this->nqlLimit = "LIMIT {$limit} ";
         return $this;
     }

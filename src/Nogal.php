@@ -1,14 +1,20 @@
 <?php
 
 /**
- * This file is part of the NogalEE package.
+ * Copyright 2018 Servicio Nacional de Aprendizaje - SENA
  *
- * (c) Julian Lasso <jalasso69@misena.edu.co>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 namespace NogalEE;
 
 /**
@@ -58,10 +64,10 @@ class Nogal
      * @var \PDO
      */
     private $instance;
-    
+
     /**
      * Representa una expresión preparada y, después de ejecutar la expresión, un conjunto de resultados asociados.
-     * 
+     *
      * @var \PDOStatement
      */
     private $stmt;
@@ -84,32 +90,36 @@ class Nogal
      * @var array
      * @link http://php.net/manual/en/function.hash.php Más información para la configuración del HASH
      */
-    protected $config;
+    private $config;
 
     /**
      * Constructor de la clase DataSource
      *
      * @param array $config
      *            Arreglo asociativo con los parámetros de configuración
-     *            necesarios.<br>driver, host, port, dbname, user, password, hash.<br><br>
+     *            necesarios.<br>driver, host, port, dbname, user, password, hash, [opcional] persistent<br><br>
      */
     public function __construct(array $config)
     {
         $this->query_params = array();
-        $this->instance = null;
+        //$this->instance = null;
+        $GLOBALS['instanceNogalEE'] = null;
         if (isset($config['persistent']) === false) {
             $config['persistent'] = true;
-        } else if (is_bool($config['persistent']) === false) {
+        } elseif (is_bool($config['persistent']) === false) {
             throw new \Exception('The value for the "persistent" option must be a boolean value.');
-        } else {
-            $config['persistent'] = false;
         }
         $this->config = $config;
     }
-    
+
     public function debugDumpParams(): void
     {
         $this->stmt->debugDumpParams();
+    }
+
+    protected function getConfigFormatDateTime(): string
+    {
+        return $this->config['format']['date_time'];
     }
 
     /**
@@ -121,9 +131,11 @@ class Nogal
     private function throwNewExceptionFromPDOException(\PDOException $exc): void
     {
         $code = (strlen($exc->getCode()) > 0) ? $exc->getCode() : '0';
-        $previous = ($exc->getPrevious() !== null) ? $exc->getPrevious() : '';
-        // , $code, $previous
-        throw new \Exception($exc->getMessage());
+        if ($exc->getPrevious() !== null) {
+            throw new \Exception($exc->getMessage(), $code, $exc->getPrevious());
+        } else {
+            throw new \Exception($exc->getMessage());
+        }
     }
 
     /**
@@ -145,7 +157,8 @@ class Nogal
                 }
                 break;
             case 'sqlsrv':
-                return $this->config['driver'] . ':Server=' . $this->config['host'] . ',' . $this->config['port'] . ';Database=' . $this->config['dbname'];
+                // return $this->config['driver'] . ':Server=' . $this->config['host'] . ',' . $this->config['port'] . ';Database=' . $this->config['dbname'];
+                return $this->config['driver'] . ':Server=' . $this->config['host'] . ';Database=' . $this->config['dbname'] . ';ConnectionPooling=' . ((isset($this->config['persistent']) and $this->config['persistent'] === true) ? 1 : 0);
                 break;
             case 'oci':
                 return $this->config['driver'] . ':dbname=//' . $this->config['host'] . ':' . $this->config['port'] . '/' . $this->config['dbname'];
@@ -169,20 +182,18 @@ class Nogal
      * Método para obtener los resultados como un objeto de PHP genérico o como
      * un objeto de una clase definida.
      *
-     * @param \PDOStatement $stmt
-     *            Estamento que contiene la respuesta a la consulta realizada.
-     * @param object $class_object
-     *            Clase del objeto a usar para dar respuesta de ese tipo de objeto.
+     * @param \PDOStatement $stmt Estamento que contiene la respuesta a la consulta realizada.
+     * @param object $class_object Clase del objeto a usar para dar respuesta de ese tipo de objeto.
      * @return mixed La respuesta puede ser en un objeto genérico de PHP o el tipo de objeto pasado en $class_object
      * @throws \Exception
      */
-    private function getResultsObject(\PDOStatement $stmt, object $class_object)
+    private function getResultsObject(\PDOStatement $stmt, ?object $class_object)
     {
         try {
             $answer = array();
             if ($class_object === null) {
                 $answer = $stmt->fetchAll(\PDO::FETCH_OBJ);
-            } else if (class_exists($class_object) === true) {
+            } elseif (is_object($class_object) === true or class_exists($class_object) === true) {
                 $tmp = $stmt->fetchAll();
                 $i = 0;
                 $class_object = new $class_object($this->config);
@@ -202,27 +213,27 @@ class Nogal
             throw new \PDOException($exc->getMessage(), $exc->getCode(), $exc->getPrevious());
         }
     }
-    
+
     /**
      * Devuelve el tipo de dato pertinente según el tipo de valor
-     * 
+     *
      * @param mixed $value
      * @return int
      */
-    protected function detectDataType ($value): int
+    protected function detectDataType($value): int
     {
         switch (gettype($value)) {
             case 'string':
-                return Nogal::PARAM_STR;
+                return self::PARAM_STR;
                 break;
             case 'integer':
-                return Nogal::PARAM_INT;
+                return self::PARAM_INT;
                 break;
             case 'double':
-                return Nogal::PARAM_INT;
+                return self::PARAM_INT;
                 break;
             case 'boolean':
-                return Nogal::PARAM_BOOL;
+                return self::PARAM_BOOL;
                 break;
         }
     }
@@ -265,7 +276,7 @@ class Nogal
      *            Tipo de parámetro. Ejemplo Nogal::PARAM_STR
      * @return $this
      */
-    protected function setQueryParam(string $param, $value, ?int $type = null): Nogal
+    protected function setQueryParam(string $param, $value, int $type = null): Nogal
     {
         $this->query_params[$param]['value'] = $value;
         if ($type === null) {
@@ -293,7 +304,7 @@ class Nogal
      *
      * @return string
      */
-    protected function getDataBaseDriver(): string
+    protected function getConfigDataBaseDriver(): string
     {
         return $this->config['driver'];
     }
@@ -307,14 +318,19 @@ class Nogal
     protected function getConection(): \PDO
     {
         try {
-            if ($this->instance === null) {
-                $this->instance = new \PDO($this->getDataSourceName(), $this->config['user'], $this->config['password'], array(
-                    \PDO::ATTR_PERSISTENT => $this->config['persistent'],
+            // echo '<pre>';
+            if ($GLOBALS['instanceNogalEE'] === null) {
+                $options = array(
                     \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                     \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
-                ));
+                );
+                if ($this->config['driver'] !== 'sqlsrv') {
+                    $options[\PDO::ATTR_PERSISTENT] = $this->config['persistent'];
+                }
+                $GLOBALS['instanceNogalEE'] = new \PDO($this->getDataSourceName(), $this->config['user'], $this->config['password'], $options);
+                // print_r($GLOBALS['instanceNogalEE']);
             }
-            return $this->instance;
+            return $GLOBALS['instanceNogalEE'];
         } catch (\PDOException $exc) {
             $this->throwNewExceptionFromPDOException($exc);
         }
@@ -327,7 +343,12 @@ class Nogal
      */
     protected function beginTransaction(): Nogal
     {
-        $this->instance->beginTransaction();
+        if (isset($GLOBALS['beginTransactionNogalEE']) === false) {
+            $GLOBALS['beginTransactionNogalEE'] = 1;
+            $this->getConection()->beginTransaction();
+        } else {
+            $GLOBALS['beginTransactionNogalEE'] ++;
+        }
         return $this;
     }
 
@@ -338,7 +359,13 @@ class Nogal
      */
     protected function commit(): Nogal
     {
-        $this->instance->commit();
+        if (isset($GLOBALS['beginTransactionNogalEE']) === true) {
+            $GLOBALS['beginTransactionNogalEE'] --;
+            if ($GLOBALS['beginTransactionNogalEE'] === 0) {
+                $this->getConection()->commit();
+                unset($GLOBALS['beginTransactionNogalEE']);
+            }
+        }
         return $this;
     }
 
@@ -349,7 +376,13 @@ class Nogal
      */
     protected function rollBack(): Nogal
     {
-        $this->instance->rollBack();
+        if (isset($GLOBALS['beginTransactionNogalEE']) === true) {
+            $GLOBALS['beginTransactionNogalEE'] --;
+            if ($GLOBALS['beginTransactionNogalEE'] === 0) {
+                unset($GLOBALS['beginTransactionNogalEE']);
+                $this->getConection()->rollBack();
+            }
+        }
         return $this;
     }
 
@@ -358,8 +391,7 @@ class Nogal
      * Método usado para realizar consultas tipo SELECT
      *
      * @param string $sql
-     * @param object $class_object
-     *            [opcional]
+     * @param object $class_object [opcional]
      * @return array
      * @throws \PDOException
      */
@@ -393,6 +425,8 @@ class Nogal
     protected function execute(string $sql, ?string $sequence = null): ?int
     {
         try {
+            // echo '<pre>';
+            // echo $sql . '<br>';
             $this->stmt = $this->getConection()->prepare($sql);
             $this->bindParams();
             $this->stmt->execute();
@@ -408,10 +442,18 @@ class Nogal
             $this->deleteQueryParams();
         }
     }
-    
+
     protected function getColumnsLastQuery(bool $how_string = false)
     {
-        $fields = str_replace(' ', '', preg_replace(array('/(\sAS\s(\w+))/g', '/^select /i', '/ from (\w|\s|\W|\t|\r)+/i'), array('','',''), $this->stmt->queryString));
+        $fields = str_replace(' ', '', preg_replace(array(
+            '/(\sAS\s(\w+))/g',
+            '/^select /i',
+            '/ from (\w|\s|\W|\t|\r)+/i'
+        ), array(
+            '',
+            '',
+            ''
+        ), $this->stmt->queryString));
         if ($how_string === true) {
             return $fields;
         }
@@ -426,6 +468,20 @@ class Nogal
      */
     protected function throwNewExceptionFromException(\Exception $exc): void
     {
-        throw new \Exception($exc->getMessage());
+        $code = (strlen($exc->getCode()) > 0) ? $exc->getCode() : '0';
+        $previous = ($exc->getPrevious() !== null) ? $exc->getPrevious() : null;
+        // , $code, $previous
+        throw new \Exception($exc->getMessage(), $code, $previous);
+    }
+
+    protected function camelCase(string $string): string
+    {
+        if (isset($GLOBALS['cacheTempCamelCase'][$string]) === false) {
+            $GLOBALS['cacheTempCamelCase'][$string] = str_replace(' ', '', ucwords(str_replace(array(
+                '_',
+                '.'
+            ), ' ', $string)));
+        }
+        return $GLOBALS['cacheTempCamelCase'][$string];
     }
 }

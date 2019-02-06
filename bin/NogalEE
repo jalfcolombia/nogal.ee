@@ -1,0 +1,5 @@
+#!/usr/bin/env php
+<?php
+include 'NogalEE.php';
+$console = new \NogalEE('NogalEE', 'v.0.0.1', __DIR__ . DIRECTORY_SEPARATOR . 'Task' . DIRECTORY_SEPARATOR);
+$console->run();

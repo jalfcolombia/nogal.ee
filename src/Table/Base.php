@@ -1,33 +1,33 @@
 <?php
 
 /**
- * This file is part of the NogalEE package.
+ * Copyright 2018 Servicio Nacional de Aprendizaje - SENA
  *
- * (c) Julian Lasso <jalasso69@misena.edu.co>
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
  *
- * For the full copyright and license information, please view the LICENSE
- * file that was distributed with this source code.
+ *     http://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
-
 namespace NogalEE\Table;
 
 use NogalEE\Nogal;
 use NogalEE\NQL;
 
-class Base extends Nogal
+abstract class Base extends Nogal
 {
-
-    private const CREATED_AT = 'created_at';
-
-    private const UPDATED_AT = 'updated_at';
-
-    private const DELETED_AT = 'deleted_at';
 
     /**
      *
      * @var NQL
      */
-    protected $nql;
+    protected $_nql;
 
     /**
      * Constructor de la clase base
@@ -38,98 +38,103 @@ class Base extends Nogal
     public function __construct(array $config)
     {
         parent::__construct($config);
-        $this->nql = new NQL($this->getDataBaseDriver());
+        $this->_nql = new NQL($this->getConfigDataBaseDriver());
     }
 
     public function restartNql(): void
     {
-        $this->nql = new NQL($this->getDataBaseDriver());
+        $this->_nql = new NQL($this->getConfigDataBaseDriver());
     }
 
-    public function delete(string $table, array $id): void
+    protected function deleteBase(string $table, array $id): void
     {
         try {
-            $this->nql->delete($table);
+            $this->_nql->delete($table);
             $this->generateCondition('where', $id);
-            $this->execute($this->nql);
+            $this->execute($this->_nql);
         } catch (\Exception $exc) {
             $this->throwNewExceptionFromException($exc);
         }
     }
 
-    /*public function select(string $table, string $select_columns, array $joins = array(), array $where = array(), ?string $group_by = null, array $having = array(), ?string $order_by = null, object $page = null, object $class_object = null): array
-    {
-        try {
-            $this->nql->select($select_columns)->from($table);
-            if (count($joins) > 0) {
-                foreach ($joins as $type => $data) {
-                    $this->nql->$type($data->table, ((isset($data->condition)) ? $data->condition : array()));
-                }
-            }
-            
-            $this->generateCondition('where', $where);
-            
-            if ($group_by !== null) {
-                $this->nql->groupBy($group_by);
-            }
-            
-            $this->generateCondition('having', $having);
-            
-            if ($order_by !== null) {
-                $this->nql->orderBy($order_by);
-            }
-            
-            if ($page !== null) {
-                $this->nql->limit($page->limit)->offset($page->offset);
-            }
-            
-            echo $this->nql;
-            exit();
-            return $this->query($this->nql, $class_object);
-        } catch (\Exception $exc) {
-            $this->throwNewExceptionFromException($exc);
-        }
-    }*/
-
-    public function save(string $table, array $columns_and_values, ?string $sequence = null): int
+    /*
+     * public function select(string $table, string $select_columns, array $joins = array(), array $where = array(), ?string $group_by = null, array $having = array(), ?string $order_by = null, object $page = null, object $class_object = null): array
+     * {
+     * try {
+     * $this->nql->select($select_columns)->from($table);
+     * if (count($joins) > 0) {
+     * foreach ($joins as $type => $data) {
+     * $this->nql->$type($data->table, ((isset($data->condition)) ? $data->condition : array()));
+     * }
+     * }
+     *
+     * $this->generateCondition('where', $where);
+     *
+     * if ($group_by !== null) {
+     * $this->nql->groupBy($group_by);
+     * }
+     *
+     * $this->generateCondition('having', $having);
+     *
+     * if ($order_by !== null) {
+     * $this->nql->orderBy($order_by);
+     * }
+     *
+     * if ($page !== null) {
+     * $this->nql->limit($page->limit)->offset($page->offset);
+     * }
+     *
+     * echo $this->nql;
+     * exit();
+     * return $this->query($this->nql, $class_object);
+     * } catch (\Exception $exc) {
+     * $this->throwNewExceptionFromException($exc);
+     * }
+     * }
+     */
+    
+    protected function saveBase(string $table, array $columns_and_values, string $sequence = null): int
     {
         try {
             $values = $columns = '';
             foreach ($columns_and_values as $column => $value) {
                 $columns .= $column . ', ';
-                $values .= ":{$column}, ";
+                $values .= ":{$this->camelCase($column)}, ";
                 if (is_object($value) === true) {
-                    $this->setQueryParam(":{$column}", $value->value, $value->type);
+                    $this->setQueryParam(":{$this->camelCase($column)}", $value->value, $value->type);
                 } else {
-                    $this->setQueryParam(":{$column}", $value, $this->detectDataType($value));
+                    $this->setQueryParam(":{$this->camelCase($column)}", $value, $this->detectDataType($value));
                 }
             }
             $columns = substr($columns, 0, - 2);
             $values = substr($values, 0, - 2);
-            $this->nql->insert($table, $columns)->values($values);
-            return $this->execute($sql, $sequence);
+            $this->_nql->insert($table, $columns)->values($values);
+            /*echo '<pre>';
+            echo $this->_nql;
+            echo '</pre>';*/
+            return $this->execute($this->_nql, $sequence);
         } catch (\Exception $exc) {
             $this->throwNewExceptionFromException($exc);
         }
     }
 
-    public function update(string $table, array $set, array $where): void
+    protected function updateBase(string $table, array $set, array $where): void
     {
         try {
-            $this->nql->update($table);
+            $this->_nql->update($table);
             $columns = '';
             foreach ($set as $column => $value) {
                 $columns .= "{$column}, ";
-                if (is_object($value) === true) {
-                    $this->setQueryParam(":{$column}", $value->value, $value->type);
+                if (is_object($value) === true) { 
+                    $this->setQueryParam(":{$this->camelCase($column)}", $value->value, $value->type);
                 } else {
-                    $this->setQueryParam(":{$column}", $value, $this->detectDataType($value));
+                    $this->setQueryParam(":{$this->camelCase($column)}", $value, $this->detectDataType($value));
                 }
             }
             $columns = substr($columns, 0, - 2);
-            $this->nql->set($columns);
+            $this->_nql->set($columns);
             $this->generateCondition('where', $where);
-            $this->execute($this->nql);
+            $this->execute($this->_nql);
         } catch (\Exception $exc) {
             $this->throwNewExceptionFromException($exc);
         }
@@ -143,21 +148,21 @@ class Base extends Nogal
             foreach ($data as $condition => $data) {
                 $data->raw = (isset($data->raw) === true) ? $data->raw : false;
                 if ($cicle === 0) {
-                    $this->nql->$type(((isset($data->condition) === true) ? $data->condition : $condition), $data->raw);
+                    $this->_nql->$type(((isset($data->condition) === true) ? $data->condition : $condition), $data->raw);
                     $cicle ++;
                 } else {
                     $type_condition = "{$type}Condition";
                     if (is_array($data) === true) {
                         $this->addCondition($condition, $data, $type_condition);
-                    } else if (isset($data->logical_operator) === true) {
-                        $this->nql->$type_condition($condition, $data->condition, $data->raw, $data->logical_operator);
+                    } elseif (isset($data->logical_operator) === true) {
+                        $this->_nql->$type_condition($condition, $data->condition, $data->raw, $data->logical_operator);
                     } else {
-                        $this->nql->$type_condition($condition, $data->condition, $data->raw);
+                        $this->_nql->$type_condition($condition, $data->condition, $data->raw);
                     }
                 }
                 
                 if (isset($data->raw) === true and $data->raw === false) {
-                    $this->setQueryParam(':' . ((isset($data->condition) === true) ? $data->condition : $condition), $data->value, ((isset($data->type) === true) ? $data->type : $this->detectDataType($data->value)));
+                    $this->setQueryParam(':' . ((isset($data->condition) === true) ? $this->camelCase($data->condition) : $condition), $data->value, ((isset($data->type) === true) ? $data->type : $this->detectDataType($data->value)));
                 }
             }
         }
@@ -165,21 +170,21 @@ class Base extends Nogal
 
     private function addCondition(string $condition, array $where, $type_condition): void
     {
-        $this->nql->$type_condition("PRE", "{$condition} ( ");
+        $this->_nql->$type_condition("PRE", "{$condition} ( ");
         foreach ($where as $condition => $data) {
             if (is_array($data) === true) {
                 $this->addCondition($condition, $data, $type_condition);
             } else {
                 if (isset($data->logical_operator) === true) {
-                    $this->nql->$type_condition($condition, $data->condition, $data->raw, $data->logical_operator);
+                    $this->_nql->$type_condition($condition, $data->condition, $data->raw, $data->logical_operator);
                 } else {
-                    $this->nql->$type_condition($condition, $data->condition, $data->raw);
+                    $this->_nql->$type_condition($condition, $data->condition, $data->raw);
                 }
                 if ($data->raw === false) {
                     $this->setQueryParam(':' . $data->condition, $data->value, $data->type);
                 }
             }
         }
-        $this->nql->$type_condition("POS", ") ");
+        $this->_nql->$type_condition("POS", ") ");
     }
 }

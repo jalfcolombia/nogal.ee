@@ -1,13 +1,13 @@
 <?php
 
-$data = "hello";
+// $data = "hello";
 
-foreach (hash_algos() as $v) {
-    $r = hash($v, $data, false);
-    printf("%-12s - %3d - %s<br>", $v, strlen($r), $r);
-} 
+// foreach (hash_algos() as $v) {
+//     $r = hash($v, $data, false);
+//     printf("%-12s - %3d - %s<br>", $v, strlen($r), $r);
+// } 
 
-exit();
+// exit();
 
 /*$data = array(1, 1., NULL, 'foo', '2', true, 0, 1, 'true', 'false', '2.3');
 foreach ($data as $value) {
@@ -57,12 +57,12 @@ $base = new Base(array(
     )
 );*/
 
-/*$data = array(
+$data = array(
     'id' => (object) array('value' => 33, 'type' => Nogal::PARAM_INT)
 );
 
 $base->delete('usuario', $data);
-exit();*/
+exit();
 
 
 /*$table = 'usuario';
@@ -111,7 +111,7 @@ $where = array(
 );
 $base->select($table, $select_columns, $joins, $where);*/
 
-/*$table = 'usuario';
+$table = 'usuario';
 $select_columns = 'id, nombre, password';
 $joins = array(
     NQL::JOIN => (object) array(
@@ -222,7 +222,7 @@ echo '<div style="width: 800px; background-color: #c3c3c3; padding: 5px; word-wr
 echo '<pre>';
 $base->select($table, $select_columns, $joins, $where, $group_by, $having, $order_by, $page);
 echo '</pre>';
-echo '</div>';*/
+echo '</div>';
 
 /*$table = 'usuario';
 $columns_and_values = array(
