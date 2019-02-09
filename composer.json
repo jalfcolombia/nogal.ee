@@ -1,16 +1,18 @@
 {
   "require": {
-    "php": ">=7.2.0",
-    "sena/task_console": "^0.0.2"
+    "php": ">=7.3.0",
+    "sena/task_console": "^0.0.2",
+    "codedungeon/php-cli-colors": "^1.10"
   },
   "name": "sena/nogal.ee",
   "description": "Nogal (Enterprise Edition) Framework written in PHP7 by the National Learning Service (SENA) for enterprise use.",
+  "version": "0.0.1",
   "autoload": {
     "psr-4": {
       "NogalEE\\": "src"
     }
   },
-  "type": "project",
+  "type": "library",
   "homepage": "https://jalfcolombia.github.io/nogal.ee/",
   "license": "MIT",
   "minimum-stability": "stable",
