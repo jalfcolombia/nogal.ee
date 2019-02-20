@@ -72,6 +72,8 @@ class Nogal
      */
     private $stmt;
 
+    private $sql;
+
     /**
      * Arreglo asociativo con los parámetros de configuración necesarios.<br><br>
      * <b>driver</b> Driver a usar para la conexión a la base de datos.
@@ -95,9 +97,8 @@ class Nogal
     /**
      * Constructor de la clase DataSource
      *
-     * @param array $config
-     *            Arreglo asociativo con los parámetros de configuración
-     *            necesarios.<br>driver, host, port, dbname, user, password, hash, [opcional] persistent<br><br>
+     * @param array $config Arreglo asociativo con los parámetros de configuración necesarios.
+     *                      driver, host, port, dbname, user, password, hash, [opcional] persistent
      */
     public function __construct(array $config)
     {
@@ -114,7 +115,8 @@ class Nogal
 
     public function debugDumpParams(): void
     {
-        $this->stmt->debugDumpParams();
+        print_r($this->sql);
+        print_r($this->query_params);
     }
 
     protected function getConfigFormatDateTime(): string
@@ -172,6 +174,7 @@ class Nogal
     private function bindParams(): void
     {
         if (count($this->query_params) > 0) {
+            // var_dump($this->query_params); exit();
             foreach ($this->query_params as $param => $data) {
                 $this->stmt->bindParam($param, $data['value'], $data['type']);
             }
@@ -398,6 +401,7 @@ class Nogal
     protected function query(string $sql, object $class_object = null): array
     {
         try {
+            $this->sql = $sql;
             $this->stmt = $this->getConection()->prepare($sql);
             $this->bindParams();
             $this->stmt->execute();
@@ -427,14 +431,15 @@ class Nogal
         try {
             // echo '<pre>';
             // echo $sql . '<br>';
+            $this->sql = $sql;
             $this->stmt = $this->getConection()->prepare($sql);
             $this->bindParams();
-            $this->stmt->execute();
+            $answer = $this->stmt->execute();
             preg_match('/^(insert into )/i', $sql, $matches);
             if (count($matches) > 0) {
                 return $sequence !== null ? $this->getConection()->lastInsertId($sequence) : $this->getConection()->lastInsertId();
             } else {
-                return null;
+                return $answer;
             }
         } catch (\PDOException $exc) {
             $this->throwNewExceptionFromPDOException($exc);

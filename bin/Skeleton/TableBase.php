@@ -15,7 +15,7 @@ abstract class {$tableCamelCase}Base extends Base
     /**
      * Nombre de la tabla "{$table}" en base de datos
      */
-    public const TABLE = self::SCHEMA . '{$table}';
+    public const TABLE = self::SCHEMA . '.' . '{$table}';
 {$fields}{$length}{$type}{$columns2}
     public function __construct(array \$config)
     {
@@ -53,6 +53,7 @@ abstract class {$tableCamelCase}Base extends Base
         }
         return \$data;
     }
+
 }
 
 skeleton;

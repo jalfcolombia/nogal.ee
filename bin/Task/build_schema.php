@@ -95,14 +95,27 @@ class build_schema implements ITask
     private function file_save(string $path, string $name, string $content, bool $rewrite = false): void
     {
         $newfile = $path . $name . '.php';
-        // if (file_exists($newfile) === $rewrite) {
-        if ($file = fopen($newfile, "w")) {
-            if (fwrite($file, $content) === false) {
-                throw new Exception("Ocurrio un error en el archivo '{$name}' al intentar escribirlo");
+        if ($rewrite === true) {
+            if ($file = fopen($newfile, "w")) {
+                if (fwrite($file, $content) === false) {
+                    throw new Exception("Ocurrio un error en el archivo '{$name}' al intentar escribirlo");
+                }
+                fclose($file);
+            } else {
+                throw new Exception("Ocurrio un error y el archivo '{$name}' en la ubicación '{$path}' no pudo ser creado");
             }
             fclose($file);
         } else {
-            throw new Exception("Ocurrio un error y el archivo '{$name}' en la ubicación '{$path}' no pudo ser creado");
+            if (file_exists($newfile) === $rewrite) {
+                if ($file = fopen($newfile, "w")) {
+                    if (fwrite($file, $content) === false) {
+                        throw new Exception("Ocurrio un error en el archivo '{$name}' al intentar escribirlo");
+                    }
+                    fclose($file);
+                } else {
+                    throw new Exception("Ocurrio un error y el archivo '{$name}' en la ubicación '{$path}' no pudo ser creado");
+                }
+            }
         }
         // }
     }
@@ -130,7 +143,7 @@ class build_schema implements ITask
     {
         $tab = (string) "    ";
         $namespace_details = $fields = $length = $type = $columns2 = $detail = $defaults = $getters_and_setters = $save = $no_save = $save_defaults = $save_details = (string) "";
-        $no_update = $update_defaults = $no_delete = $delete_defaults = $update_details = $where_update = $delete = $set_delete = $where_delete = (string) "";
+        $no_update = $update_defaults = $no_delete = $delete_defaults = $update_details = $where_update = $delete = $set_delete = $where_delete = $save_execute = (string) "";
         $tableCamelCase = $this->camelCase($table);
         $table_details = array();
 
@@ -265,7 +278,7 @@ PRC . PHP_EOL;
 
             if (isset($column->behaviors->delete) === true) {
                 $set_delete .= PHP_EOL . <<<SET_DELETE
-                    self::FIELD_{{$columnMayus}} => (object) array(
+                    self::FIELD_{$columnMayus} => (object) array(
                         'value' => \$this->get{$columnCamelCase}(),
                         'type' => self::TYPE{$columnMayus}
                     ),
@@ -371,6 +384,12 @@ SETTER;
                 foreach ($pks as $pk) {
                     if ($column->column === $pk->column) {
 
+                        if ($column->auto_increment === true) {
+                            $save_execute .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(\$this->saveBase(self::TABLE, \$data, self::SEQUENCE));";
+                        } else {
+                            $save_execute .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->saveBase(self::TABLE, \$data, self::SEQUENCE);";
+                        }
+
                         $where_update .= PHP_EOL . <<<WHERE_UPDATE
                 (object) array(
                     'condition' => self::FIELD_{$columnMayus},
@@ -449,8 +468,7 @@ GETTER_AND_SETTER;
     {
         try {
             \$this->beginTransaction();{$save_defaults}
-            \$data = \$this->createDataForSaveOrUpdate(array({$no_save}));
-            \$this->setId(\$this->saveBase(self::TABLE, \$data, self::SEQUENCE));{$save_details}
+            \$data = \$this->createDataForSaveOrUpdate(array({$no_save}));{$save_execute}{$save_details}
             \$this->commit();
             return \$this;
         } catch (\Exception \$exc) {
@@ -525,7 +543,7 @@ UPDATE;
 DELETE;
         $skeleton = (string) '';
         require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'Skeleton' . DIRECTORY_SEPARATOR . 'TableBase.php';
-        $this->file_save($outputBase, $tableCamelCase, $skeleton, true);
+        $this->file_save($outputBase, $tableCamelCase . "Base", $skeleton, true);
     }
 
     private function found_default(array $behaviors): bool
