@@ -145,7 +145,7 @@ class Query extends Nogal implements \Iterator
         $this->answer = (isset($answer[0]) === true) ? $answer[0] : null;
         return $this;
     }
-    
+
     public function getOne()
     {
         return $this->current();
@@ -154,10 +154,9 @@ class Query extends Nogal implements \Iterator
     /**
      * Busca por medio de la llave o llaves primarias.
      *
-     * @param array $id
-     *            Arreglo asociativo con las llaves primarias.<br>
-     *            Ejemplo:<br>array('id' => 12); array('id' => 1, 'usuario_id' => 32);<br>
-     *            array('id' => (object) array('value' => 12, 'type' => Nogal::PARAM_INT));
+     * @param array $id Arreglo asociativo con las llaves primarias.<br>
+     *                  Ejemplo:<br>array('id' => 12); array('id' => 1, 'usuario_id' => 32);<br>
+     *                  array('id' => (object) array('value' => 12, 'type' => Nogal::PARAM_INT));
      * @return self
      */
     public function findPK(array $id): self
@@ -379,7 +378,7 @@ class Query extends Nogal implements \Iterator
     }
 
     /**
-     * 
+     *
      * @param string $field Nombre del campo por el cual filtrar
      * @param mixed $value Valor del campo a filtrar.<br>También puede ser un objeto como el sigueinte ejemplo:<br>
      * @param string $logical_operator [opcional] Criterio lógico por el cual filtrar

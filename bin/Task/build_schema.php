@@ -104,7 +104,6 @@ class build_schema implements ITask
             } else {
                 throw new Exception("Ocurrio un error y el archivo '{$name}' en la ubicación '{$path}' no pudo ser creado");
             }
-            fclose($file);
         } else {
             if (file_exists($newfile) === $rewrite) {
                 if ($file = fopen($newfile, "w")) {
@@ -117,7 +116,6 @@ class build_schema implements ITask
                 }
             }
         }
-        // }
     }
 
     private function camelCase(string $string): string
@@ -144,6 +142,7 @@ class build_schema implements ITask
         $tab = (string) "    ";
         $namespace_details = $fields = $length = $type = $columns2 = $detail = $defaults = $getters_and_setters = $save = $no_save = $save_defaults = $save_details = (string) "";
         $no_update = $update_defaults = $no_delete = $delete_defaults = $update_details = $where_update = $delete = $set_delete = $where_delete = $save_execute = (string) "";
+        $reset = (string) "";
         $tableCamelCase = $this->camelCase($table);
         $table_details = array();
 
@@ -165,7 +164,7 @@ PRC . PHP_EOL;
                     $no_delete .= "'{$child->table}',";
                     $table_details[] = $child->table;
                     $save_details .= PHP_EOL . <<<SAVE_DETAILS
-            if (count(\$this->{{$child->table}}) > 0) {
+            if (count(\$this->{$child->table}) > 0) {
                 /* @var \$detalle {$this->camelCase($child->table)} */
                 \$x = 0;
                 foreach (\$this->{$child->table} as \${$child->table}) {
@@ -175,7 +174,7 @@ PRC . PHP_EOL;
             }
 SAVE_DETAILS;
                     $update_details .= PHP_EOL . <<<UPDATE_DETAILS
-            if (count(\$this->{{$child->table}}) > 0) {
+            if (count(\$this->{$child->table}) > 0) {
                 /* @var \$detalle {$this->camelCase($child->table)} */
                 foreach (\$this->{$child->table} as \${$child->table}) {
                     \${$child->table}->set{$this->camelCase($child->column)}(\$this->get{$this->camelCase($fk->column)}())->update();
@@ -280,7 +279,7 @@ PRC . PHP_EOL;
                 $set_delete .= PHP_EOL . <<<SET_DELETE
                     self::FIELD_{$columnMayus} => (object) array(
                         'value' => \$this->get{$columnCamelCase}(),
-                        'type' => self::TYPE{$columnMayus}
+                        'type' => self::TYPE_{$columnMayus}
                     ),
 SET_DELETE;
                 $where_update .= PHP_EOL . <<<WHERE_UPDATE
@@ -297,6 +296,9 @@ WHERE_UPDATE;
 WHERE_DELETE;
             }
 
+            // RESET
+            $reset .= PHP_EOL . "{$tab}{$tab}\$this->{$column->column} = null;";
+
             // DEFAULTS
             if (isset($column->default) === false and isset($column->behaviors->default) === true) {
                 $flag = $this->found_default((array) $column->behaviors);
@@ -308,9 +310,17 @@ WHERE_DELETE;
                 if (isset($column->behaviors->insert) === true) {
                     $no_update .= "'{$column->column}', ";
                     if ($type_param_return === "DateTime") {
-                        $save_defaults .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(date(\$this->getConfigFormatDateTime()), \$this->getConfigFormatDateTime());";
+                        $save_defaults .= PHP_EOL . <<<SAVE_DEFAULTS
+{$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
+{$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(date(\$this->getConfigFormatDateTime()), \$this->getConfigFormatDateTime());
+{$tab}{$tab}{$tab}}
+SAVE_DEFAULTS;
                     } else {
-                        $save_defaults .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}({$column->behaviors->default});";
+                        $save_defaults .= PHP_EOL . <<<SAVE_DEFAULTS
+{$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
+{$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}({$column->behaviors->default});
+{$tab}{$tab}{$tab}}
+SAVE_DEFAULTS;
                     }
                 }
 
@@ -318,9 +328,17 @@ WHERE_DELETE;
                 if (isset($column->behaviors->update) === true) {
                     $no_save .= "'{$column->column}', ";
                     if ($type_param_return === "DateTime") {
-                        $update_defaults .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(date(\$this->getConfigFormatDateTime()), \$this->getConfigFormatDateTime());";
+                        $update_defaults .= PHP_EOL . <<<UPDATE_DEFAULTS
+{$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
+{$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(date(\$this->getConfigFormatDateTime()), \$this->getConfigFormatDateTime());
+{$tab}{$tab}{$tab}}
+UPDATE_DEFAULTS;
                     } else {
-                        $update_defaults .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}({$column->behaviors->default});";
+                        $update_defaults .= PHP_EOL . <<<UPDATE_DEFAULTS
+{$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
+{$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}({$column->behaviors->default});
+{$tab}{$tab}{$tab}}
+UPDATE_DEFAULTS;
                     }
                 }
 
@@ -329,9 +347,17 @@ WHERE_DELETE;
                     $no_save .= "'{$column->column}', ";
                     $no_update .= "'{$column->column}', ";
                     if ($type_param_return === "DateTime") {
-                        $delete_defaults .= PHP_EOL . "{$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(date(\$this->getConfigFormatDateTime()), \$this->getConfigFormatDateTime());";
+                        $delete_defaults .= PHP_EOL . <<<DELETE_DEFAULTS
+{$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
+{$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(date(\$this->getConfigFormatDateTime()), \$this->getConfigFormatDateTime());
+{$tab}{$tab}{$tab}}
+DELETE_DEFAULTS;
                     } else {
-                        $delete_defaults .= PHP_EOL . "{$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}({$column->behaviors->default});";
+                        $delete_defaults .= PHP_EOL . <<<DELETE_DEFAULTS
+{$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
+{$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}({$column->behaviors->default});
+{$tab}{$tab}{$tab}}
+DELETE_DEFAULTS;
                     }
                 }
             }

@@ -236,9 +236,9 @@ class NQL implements IDriver
      * @param string $columns
      * @return $this
      */
-    public function orderBy(string $columns): NQL
+    public function orderBy(string $columns, string $order = "ASC"): NQL
     {
-        $this->driver_class->orderBy($columns);
+        $this->driver_class->orderBy($columns, $order . " ");
         return $this;
     }
 

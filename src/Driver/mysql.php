@@ -27,7 +27,7 @@ use NogalEE\NQL;
  */
 class mysql implements IDriver
 {
-    
+
     /**
      *
      * @var string
@@ -157,9 +157,9 @@ class mysql implements IDriver
      * {@inheritdoc}
      * @see \NogalEE\Interfaces\IDriver::orderBy()
      */
-    public function orderBy(string $columns): self
+    public function orderBy(string $columns, string $order = "ASC"): self
     {
-        $this->nqlOrderBy = "ORDER BY {$columns} ";
+        $this->nqlOrderBy = "ORDER BY {$columns} {$order}";
         return $this;
     }
     

@@ -92,8 +92,8 @@ abstract class Base extends Nogal
      * }
      * }
      */
-    
-    protected function saveBase(string $table, array $columns_and_values, string $sequence = null): int
+
+    protected function saveBase(string $table, array $columns_and_values, string $sequence = null): ?int
     {
         try {
             $values = $columns = '';
@@ -112,6 +112,7 @@ abstract class Base extends Nogal
             /*echo '<pre>';
             echo $this->_nql;
             echo '</pre>';*/
+            // $this->debugDumpParams();
             return $this->execute($this->_nql, $sequence);
         } catch (\Exception $exc) {
             $this->throwNewExceptionFromException($exc);
@@ -125,7 +126,7 @@ abstract class Base extends Nogal
             $columns = '';
             foreach ($set as $column => $value) {
                 $columns .= "{$column}, ";
-                if (is_object($value) === true) { 
+                if (is_object($value) === true) {
                     $this->setQueryParam(":{$this->camelCase($column)}", $value->value, $value->type);
                 } else {
                     $this->setQueryParam(":{$this->camelCase($column)}", $value, $this->detectDataType($value));
@@ -160,7 +161,7 @@ abstract class Base extends Nogal
                         $this->_nql->$type_condition($condition, $data->condition, $data->raw);
                     }
                 }
-                
+
                 if (isset($data->raw) === true and $data->raw === false) {
                     $this->setQueryParam(':' . ((isset($data->condition) === true) ? $this->camelCase($data->condition) : $condition), $data->value, ((isset($data->type) === true) ? $data->type : $this->detectDataType($data->value)));
                 }

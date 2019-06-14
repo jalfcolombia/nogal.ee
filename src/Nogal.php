@@ -104,7 +104,7 @@ class Nogal
     {
         $this->query_params = array();
         //$this->instance = null;
-        $GLOBALS['instanceNogalEE'] = null;
+        $GLOBALS['NogalEE.instance'] = null;
         if (isset($config['persistent']) === false) {
             $config['persistent'] = true;
         } elseif (is_bool($config['persistent']) === false) {
@@ -116,6 +116,7 @@ class Nogal
     public function debugDumpParams(): void
     {
         print_r($this->sql);
+        echo "\n";
         print_r($this->query_params);
     }
 
@@ -136,7 +137,8 @@ class Nogal
         if ($exc->getPrevious() !== null) {
             throw new \Exception($exc->getMessage(), $code, $exc->getPrevious());
         } else {
-            throw new \Exception($exc->getMessage());
+            $code = (is_numeric($code) === true) ? $code : 0;
+            throw new \Exception($exc->getMessage(), $code);
         }
     }
 
@@ -159,7 +161,6 @@ class Nogal
                 }
                 break;
             case 'sqlsrv':
-                // return $this->config['driver'] . ':Server=' . $this->config['host'] . ',' . $this->config['port'] . ';Database=' . $this->config['dbname'];
                 return $this->config['driver'] . ':Server=' . $this->config['host'] . ';Database=' . $this->config['dbname'] . ';ConnectionPooling=' . ((isset($this->config['persistent']) and $this->config['persistent'] === true) ? 1 : 0);
                 break;
             case 'oci':
@@ -322,7 +323,7 @@ class Nogal
     {
         try {
             // echo '<pre>';
-            if ($GLOBALS['instanceNogalEE'] === null) {
+            if ($GLOBALS['NogalEE.instance'] === null) {
                 $options = array(
                     \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
                     \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
@@ -330,10 +331,9 @@ class Nogal
                 if ($this->config['driver'] !== 'sqlsrv') {
                     $options[\PDO::ATTR_PERSISTENT] = $this->config['persistent'];
                 }
-                $GLOBALS['instanceNogalEE'] = new \PDO($this->getDataSourceName(), $this->config['user'], $this->config['password'], $options);
-                // print_r($GLOBALS['instanceNogalEE']);
+                $GLOBALS['NogalEE.instance'] = new \PDO($this->getDataSourceName(), $this->config['user'], $this->config['password'], $options);
             }
-            return $GLOBALS['instanceNogalEE'];
+            return $GLOBALS['NogalEE.instance'];
         } catch (\PDOException $exc) {
             $this->throwNewExceptionFromPDOException($exc);
         }
@@ -344,7 +344,7 @@ class Nogal
      *
      * @return $this
      */
-    protected function beginTransaction(): Nogal
+    public function beginTransaction(): Nogal
     {
         if (isset($GLOBALS['beginTransactionNogalEE']) === false) {
             $GLOBALS['beginTransactionNogalEE'] = 1;
@@ -360,7 +360,7 @@ class Nogal
      *
      * @return $this
      */
-    protected function commit(): Nogal
+    public function commit(): Nogal
     {
         if (isset($GLOBALS['beginTransactionNogalEE']) === true) {
             $GLOBALS['beginTransactionNogalEE'] --;
@@ -377,13 +377,13 @@ class Nogal
      *
      * @return $this
      */
-    protected function rollBack(): Nogal
+    public function rollBack(): Nogal
     {
         if (isset($GLOBALS['beginTransactionNogalEE']) === true) {
             $GLOBALS['beginTransactionNogalEE'] --;
             if ($GLOBALS['beginTransactionNogalEE'] === 0) {
-                unset($GLOBALS['beginTransactionNogalEE']);
                 $this->getConection()->rollBack();
+                unset($GLOBALS['beginTransactionNogalEE']);
             }
         }
         return $this;
@@ -434,10 +434,13 @@ class Nogal
             $this->sql = $sql;
             $this->stmt = $this->getConection()->prepare($sql);
             $this->bindParams();
+
+            // $this->debugDumpParams();
+
             $answer = $this->stmt->execute();
             preg_match('/^(insert into )/i', $sql, $matches);
             if (count($matches) > 0) {
-                return $sequence !== null ? $this->getConection()->lastInsertId($sequence) : $this->getConection()->lastInsertId();
+                return $sequence !== null ? $this->getConection()->lastInsertId($sequence) : (int) $this->getConection()->lastInsertId();
             } else {
                 return $answer;
             }

@@ -43,7 +43,7 @@ abstract class {$tableCamelCase}Base extends Base
         foreach (\$columns as \$column => \$value) {
             if (is_null(\$this->\$column) === false) {
                 \$FIELD = 'FIELD_' . strtoupper(\$column);
-                \$TYPE = strtoupper(\$column) . '_TYPE';
+                \$TYPE = 'TYPE_' . strtoupper(\$column);
                 \$get = 'get' . ucfirst(\$this->camelCase(\$column));
                 \$data[constant("self::\$FIELD")] = (object) array(
                     'value' => \$this->\$get(),
@@ -52,6 +52,11 @@ abstract class {$tableCamelCase}Base extends Base
             }
         }
         return \$data;
+    }
+
+    public function reset(): self
+    {{$reset}{$detail}{$defaults}
+        return \$this;
     }
 
 }
