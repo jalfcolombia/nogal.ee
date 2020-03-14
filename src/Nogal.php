@@ -108,7 +108,7 @@ class Nogal
         if (isset($config['persistent']) === false) {
             $config['persistent'] = true;
         } elseif (is_bool($config['persistent']) === false) {
-            throw new \Exception('The value for the "persistent" option must be a boolean value.');
+            throw new \RuntimeException('The value for the "persistent" option must be a boolean value.');
         }
         $this->config = $config;
     }
@@ -135,10 +135,10 @@ class Nogal
     {
         $code = (strlen($exc->getCode()) > 0) ? $exc->getCode() : '0';
         if ($exc->getPrevious() !== null) {
-            throw new \Exception($exc->getMessage(), $code, $exc->getPrevious());
+            throw new \RuntimeException($exc->getMessage(), $code, $exc->getPrevious());
         } else {
             $code = (is_numeric($code) === true) ? $code : 0;
-            throw new \Exception($exc->getMessage(), $code);
+            throw new \RuntimeException($exc->getMessage(), $code);
         }
     }
 
@@ -346,11 +346,12 @@ class Nogal
      */
     public function beginTransaction(): Nogal
     {
-        if (isset($GLOBALS['beginTransactionNogalEE']) === false) {
-            $GLOBALS['beginTransactionNogalEE'] = 1;
+        $name = 'beginTransactionNogalEE';
+        if (isset($GLOBALS[$name]) === false) {
+            $GLOBALS[$name] = 1;
             $this->getConection()->beginTransaction();
         } else {
-            $GLOBALS['beginTransactionNogalEE'] ++;
+            $GLOBALS[$name] ++;
         }
         return $this;
     }
@@ -362,11 +363,12 @@ class Nogal
      */
     public function commit(): Nogal
     {
-        if (isset($GLOBALS['beginTransactionNogalEE']) === true) {
-            $GLOBALS['beginTransactionNogalEE'] --;
-            if ($GLOBALS['beginTransactionNogalEE'] === 0) {
+        $name = 'beginTransactionNogalEE';
+        if (isset($GLOBALS[$name]) === true) {
+            $GLOBALS[$name] --;
+            if ($GLOBALS[$name] === 0) {
                 $this->getConection()->commit();
-                unset($GLOBALS['beginTransactionNogalEE']);
+                unset($GLOBALS[$name]);
             }
         }
         return $this;
@@ -379,11 +381,12 @@ class Nogal
      */
     public function rollBack(): Nogal
     {
-        if (isset($GLOBALS['beginTransactionNogalEE']) === true) {
-            $GLOBALS['beginTransactionNogalEE'] --;
-            if ($GLOBALS['beginTransactionNogalEE'] === 0) {
+        $name = 'beginTransactionNogalEE';
+        if (isset($GLOBALS[$name]) === true) {
+            $GLOBALS[$name] --;
+            if ($GLOBALS[$name] === 0) {
                 $this->getConection()->rollBack();
-                unset($GLOBALS['beginTransactionNogalEE']);
+                unset($GLOBALS[$name]);
             }
         }
         return $this;
@@ -404,6 +407,7 @@ class Nogal
             $this->sql = $sql;
             $this->stmt = $this->getConection()->prepare($sql);
             $this->bindParams();
+            // $this->debugDumpParams();
             $this->stmt->execute();
             return $this->getResultsObject($this->stmt, $class_object);
         } catch (\PDOException $exc) {
@@ -435,7 +439,7 @@ class Nogal
             $this->stmt = $this->getConection()->prepare($sql);
             $this->bindParams();
 
-            // $this->debugDumpParams();
+//            $this->debugDumpParams(); exit();
 
             $answer = $this->stmt->execute();
             preg_match('/^(insert into )/i', $sql, $matches);
@@ -478,8 +482,7 @@ class Nogal
     {
         $code = (strlen($exc->getCode()) > 0) ? $exc->getCode() : '0';
         $previous = ($exc->getPrevious() !== null) ? $exc->getPrevious() : null;
-        // , $code, $previous
-        throw new \Exception($exc->getMessage(), $code, $previous);
+        throw new \RuntimeException($exc->getMessage(), $code, $previous);
     }
 
     protected function camelCase(string $string): string

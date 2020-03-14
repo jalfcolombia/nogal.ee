@@ -430,7 +430,8 @@ class sqlsrv implements IDriver
             foreach ($this->nqlUnions as $union) {
                 $nql .= $union;
             }
-            $nql .= $this->nqlOrderBy . $this->nqlOffset . $this->nqlLimit . $this->nqlGroupBy;
+            // $nql .= $this->nqlOrderBy . $this->nqlOffset . $this->nqlLimit . $this->nqlGroupBy;
+            $nql .= $this->nqlOrderBy . $this->nqlOffset . $this->nqlLimit;
         } elseif ($this->nqlInsert !== '') {
             $nql = $this->nqlInsert . $this->nqlValues;
         } elseif ($this->nqlUpdate !== '') {

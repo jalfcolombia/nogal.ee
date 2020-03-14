@@ -87,7 +87,7 @@ SQL;
                 }
             }
             return $this->schema;
-        } catch (\Exception $exc) {
+        } catch (\Exception | \RuntimeException $exc) {
             $this->rollBack();
             $this->throwNewExceptionFromException($exc);
         }
@@ -104,7 +104,7 @@ SQL;
                 $rsp->{$item->COLUMN_NAME}->column = $item->COLUMN_NAME;
             }
             return $rsp;
-        } catch (\Exception $exc) {
+        } catch (\Exception | \RuntimeException $exc) {
             $this->rollBack();
             $this->throwNewExceptionFromException($exc);
         }
@@ -154,7 +154,7 @@ SQL;
                 }
             }
             return $rsp;
-        } catch (\Exception $exc) {
+        } catch (\Exception | \RuntimeException $exc) {
             $this->rollBack();
             $this->throwNewExceptionFromException($exc);
         }
@@ -188,7 +188,7 @@ SQL;
                 }
             }
             return $behavior;
-        } catch (\Exception $exc) {
+        } catch (\Exception | \RuntimeException $exc) {
             $this->rollBack();
             $this->throwNewExceptionFromException($exc);
         }

@@ -52,7 +52,7 @@ abstract class Base extends Nogal
             $this->_nql->delete($table);
             $this->generateCondition('where', $id);
             $this->execute($this->_nql);
-        } catch (\Exception $exc) {
+        } catch (\Exception | \RuntimeException $exc) {
             $this->throwNewExceptionFromException($exc);
         }
     }
@@ -87,7 +87,7 @@ abstract class Base extends Nogal
      * echo $this->nql;
      * exit();
      * return $this->query($this->nql, $class_object);
-     * } catch (\Exception $exc) {
+     * } catch (\Exception | \RuntimeException $exc) {
      * $this->throwNewExceptionFromException($exc);
      * }
      * }
@@ -114,7 +114,7 @@ abstract class Base extends Nogal
             echo '</pre>';*/
             // $this->debugDumpParams();
             return $this->execute($this->_nql, $sequence);
-        } catch (\Exception $exc) {
+        } catch (\Exception | \RuntimeException $exc) {
             $this->throwNewExceptionFromException($exc);
         }
     }
@@ -136,7 +136,7 @@ abstract class Base extends Nogal
             $this->_nql->set($columns);
             $this->generateCondition('where', $where);
             $this->execute($this->_nql);
-        } catch (\Exception $exc) {
+        } catch (\Exception | \RuntimeException $exc) {
             $this->throwNewExceptionFromException($exc);
         }
     }
