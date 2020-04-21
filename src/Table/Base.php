@@ -46,12 +46,12 @@ abstract class Base extends Nogal
         $this->_nql = new NQL($this->getConfigDataBaseDriver());
     }
 
-    protected function deleteBase(string $table, array $id): void
+    protected function deleteBase(string $table, array $id, bool $debug = false): void
     {
         try {
             $this->_nql->delete($table);
             $this->generateCondition('where', $id);
-            $this->execute($this->_nql);
+            $this->execute($this->_nql, null, $debug);
         } catch (\Exception | \RuntimeException $exc) {
             $this->throwNewExceptionFromException($exc);
         }
@@ -93,7 +93,7 @@ abstract class Base extends Nogal
      * }
      */
 
-    protected function saveBase(string $table, array $columns_and_values, string $sequence = null): ?int
+    protected function saveBase(string $table, array $columns_and_values, string $sequence = null, bool $debug = false): ?int
     {
         try {
             $values = $columns = '';
@@ -109,17 +109,13 @@ abstract class Base extends Nogal
             $columns = substr($columns, 0, - 2);
             $values = substr($values, 0, - 2);
             $this->_nql->insert($table, $columns)->values($values);
-            /*echo '<pre>';
-            echo $this->_nql;
-            echo '</pre>';*/
-            // $this->debugDumpParams();
-            return $this->execute($this->_nql, $sequence);
+            return $this->execute($this->_nql, $sequence, $debug);
         } catch (\Exception | \RuntimeException $exc) {
             $this->throwNewExceptionFromException($exc);
         }
     }
 
-    protected function updateBase(string $table, array $set, array $where): void
+    protected function updateBase(string $table, array $set, array $where, bool $debug = false): void
     {
         try {
             $this->_nql->update($table);
@@ -127,15 +123,15 @@ abstract class Base extends Nogal
             foreach ($set as $column => $value) {
                 $columns .= "{$column}, ";
                 if (is_object($value) === true) {
-                    $this->setQueryParam(":{$this->camelCase($column)}", $value->value, $value->type);
+                    $this->setQueryParam(":{$this->camelCase($column)}", ($value->type === self::PARAM_STR) ? (string) $value->value : $value->value, $value->type);
                 } else {
-                    $this->setQueryParam(":{$this->camelCase($column)}", $value, $this->detectDataType($value));
+                    $this->setQueryParam(":{$this->camelCase($column)}", ($this->detectDataType($value) === self::PARAM_STR) ? (string) $value : $value, $this->detectDataType($value));
                 }
             }
             $columns = substr($columns, 0, - 2);
             $this->_nql->set($columns);
             $this->generateCondition('where', $where);
-            $this->execute($this->_nql);
+            $this->execute($this->_nql, null, $debug);
         } catch (\Exception | \RuntimeException $exc) {
             $this->throwNewExceptionFromException($exc);
         }

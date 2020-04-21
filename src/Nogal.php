@@ -115,14 +115,13 @@ class Nogal
 
     public function debugDumpParams(): void
     {
-        print_r($this->sql);
-        echo "\n";
-        print_r($this->query_params);
+        print_r($this->sql) . PHP_EOL;
+        print_r($this->query_params) . PHP_EOL;
     }
 
     protected function getConfigFormatDateTime(): string
     {
-        return $this->config['format']['date_time'];
+        return $this->config['format']['date_time_db'];
     }
 
     /**
@@ -401,13 +400,17 @@ class Nogal
      * @return array
      * @throws \PDOException
      */
-    protected function query(string $sql, object $class_object = null): array
+    protected function query(string $sql, object $class_object = null, bool $debug = false): array
     {
         try {
             $this->sql = $sql;
             $this->stmt = $this->getConection()->prepare($sql);
             $this->bindParams();
-            // $this->debugDumpParams();
+
+            if ($debug === true) {
+                $this->debugDumpParams();
+            }
+
             $this->stmt->execute();
             return $this->getResultsObject($this->stmt, $class_object);
         } catch (\PDOException $exc) {
@@ -430,7 +433,7 @@ class Nogal
      * @return int|null ID con que quedó registrado, si no es un insert entonces devuelve cero (0)
      * @throws \PDOException
      */
-    protected function execute(string $sql, ?string $sequence = null): ?int
+    protected function execute(string $sql, ?string $sequence = null, bool $debug = false): ?int
     {
         try {
             // echo '<pre>';
@@ -439,7 +442,9 @@ class Nogal
             $this->stmt = $this->getConection()->prepare($sql);
             $this->bindParams();
 
-//            $this->debugDumpParams(); exit();
+            if ($debug === true) {
+                $this->debugDumpParams();
+            }
 
             $answer = $this->stmt->execute();
             preg_match('/^(insert into )/i', $sql, $matches);

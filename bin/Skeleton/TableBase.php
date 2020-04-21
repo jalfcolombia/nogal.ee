@@ -30,9 +30,10 @@ abstract class {$tableCamelCase}Base extends Base
      *
      * @param array \$exonerate [opcional] Arreglo con los nombre de las columnas a exonerar en una inserción o actualización
      *
+     * @param array \$updateColumnsToNULL
      * @return array Arreglo con los nombres de las columnas a tener encuenta en una inserción o actualización
      */
-    private function createDataForSaveOrUpdate(array \$exonerate = array()): array
+    private function createDataForSaveOrUpdate(array \$exonerate = array(), array \$updateColumnsToNULL = array()): array
     {
         \$columns = get_object_vars(\$this);
         unset(\$columns['_nql']);
@@ -41,8 +42,17 @@ abstract class {$tableCamelCase}Base extends Base
         }
         \$data = array();
         foreach (\$columns as \$column => \$value) {
+            \$FIELD = 'FIELD_' . strtoupper(\$column);
+            foreach (\$updateColumnsToNULL as \$col) {
+                if (\$column === \$col) {
+                    \$data[constant("self::\$FIELD")] = (object) array(
+                        'value' => NULL,
+                        'type' => \\PDO::PARAM_NULL
+                    );
+                    \$this->\$column = null;
+                }
+            }
             if (is_null(\$this->\$column) === false) {
-                \$FIELD = 'FIELD_' . strtoupper(\$column);
                 \$TYPE = 'TYPE_' . strtoupper(\$column);
                 \$get = 'get' . ucfirst(\$this->camelCase(\$column));
                 \$data[constant("self::\$FIELD")] = (object) array(

@@ -76,7 +76,7 @@ class build_schema implements ITask
     public function task(): void
     {
         $schema = $this->conn->getAllAttributes($this->params['dbname']);
-        // print_r($schema); exit();
+        // print_r($schema['aprendiz']); exit();
         foreach ($schema as $table_name => $objTable) {
             $outputBase = $this->params['output'] . 'Base' . DIRECTORY_SEPARATOR;
             $this->generate_table($this->camelCase($table_name));
@@ -168,7 +168,7 @@ PRC . PHP_EOL;
                 /* @var \$detalle {$this->camelCase($child->table)} */
                 \$x = 0;
                 foreach (\$this->{$child->table} as \${$child->table}) {
-                    \$this->{$child->table}[\$x] = \${$child->table}->set{$this->camelCase($child->column)}(\$this->get{$this->camelCase($fk->column)}())->save();
+                    \$this->{$child->table}[\$x] = \${$child->table}->set{$this->camelCase($child->column)}(\$this->get{$this->camelCase($fk->column)}())->save(\$debug);
                     \$x++;
                 }
             }
@@ -177,7 +177,7 @@ SAVE_DETAILS;
             if (count(\$this->{$child->table}) > 0) {
                 /* @var \$detalle {$this->camelCase($child->table)} */
                 foreach (\$this->{$child->table} as \${$child->table}) {
-                    \${$child->table}->set{$this->camelCase($child->column)}(\$this->get{$this->camelCase($fk->column)}())->update();
+                    \${$child->table}->set{$this->camelCase($child->column)}(\$this->get{$this->camelCase($fk->column)}())->update(\$debug);
                 }
             }
 UPDATE_DETAILS;
@@ -411,9 +411,10 @@ SETTER;
                     if ($column->column === $pk->column) {
 
                         if ($column->auto_increment === true) {
-                            $save_execute .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(\$this->saveBase(self::TABLE, \$data, self::SEQUENCE));";
+                            $save_execute .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(\$this->saveBase(self::TABLE, \$data, self::SEQUENCE, \$debug));";
                         } else {
-                            $save_execute .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->saveBase(self::TABLE, \$data, self::SEQUENCE);";
+                            $save_execute .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->saveBase(self::TABLE, \$data, self::SEQUENCE, \$debug);";
+                            $no_update .= "'{$column->column}', ";
                         }
 
                         $where_update .= PHP_EOL . <<<WHERE_UPDATE
@@ -486,11 +487,12 @@ GETTER_AND_SETTER;
     /**
      * Guarda un registro en la tabla "{$table}"
      *
+     * @param bool \$debug
      * @return \self
      *
      * @throws \Exception
      */
-    public function save(): self
+    public function save(bool \$debug = false): self
     {
         try {
             \$this->beginTransaction();{$save_defaults}
@@ -511,18 +513,20 @@ SAVE;
     /**
      * Actualiza un registro en la tabla "{$table}"
      *
+     * @param array \$updateColumnsToNULL
+     * @param bool \$debug
      * @return \self
      *
      * @throws \Exception
      */
-    public function update(): self
+    public function update(array \$updateColumnsToNULL = array(), bool \$debug = false): self
     {
         try {
             \$this->beginTransaction();{$update_defaults}
-            \$set = \$this->createDataForSaveOrUpdate(array({$no_update}));
+            \$set = \$this->createDataForSaveOrUpdate(array({$no_update}), \$updateColumnsToNULL);
             \$where = array({$where_update}
             );
-            parent::updateBase(self::TABLE, \$set, \$where);{$update_details}
+            parent::updateBase(self::TABLE, \$set, \$where, \$debug);{$update_details}
             \$this->commit();
             return \$this;
         } catch (\Exception \$exc) {
@@ -539,12 +543,13 @@ UPDATE;
      *
      * @param bool \$logical TRUE para borrado lógico y FALSE para borrado físico
      * @param bool \$deep [en BETA aún no funciona correctamente]
+     * @param bool \$debug
      *
      * @return \self
      *
      * @throws \Exception
      */
-    public function delete(bool \$logical = true, bool \$deep = true): self
+    public function delete(bool \$logical = true, bool \$deep = true, bool \$debug = false): self
     {
         try {
             \$this->beginTransaction();
@@ -553,11 +558,11 @@ UPDATE;
                 );
                 \$where = array({$where_delete}
                 );
-                parent::updateBase(self::TABLE, \$set, \$where);
+                parent::updateBase(self::TABLE, \$set, \$where, \$debug);
             } else {
                 \$where = array({$where_delete}
                 );
-                parent::deleteBase(self::TABLE, \$where);
+                parent::deleteBase(self::TABLE, \$where, \$debug);
             }
             \$this->commit();
             return \$this;
