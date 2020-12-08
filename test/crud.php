@@ -5,7 +5,7 @@
 // foreach (hash_algos() as $v) {
 //     $r = hash($v, $data, false);
 //     printf("%-12s - %3d - %s<br>", $v, strlen($r), $r);
-// } 
+// }
 
 // exit();
 
@@ -305,13 +305,3 @@ $base->update($table, $id, $where);
 echo '</pre>';
 echo '</div>';
 */
-
-
-
-
-
-
-
-
-
-

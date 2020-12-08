@@ -201,7 +201,7 @@ class Query extends Nogal implements \Iterator
                 $fieldUpperType = strtoupper($field) . '_TYPE';
                 $fieldCamelCase = 'get' . str_replace(' ', '', ucwords(str_replace('_', ' ', $field)));
                 if ($where === 0) {
-                    $where ++;
+                    $where++;
                     $this->nql->where(ucfirst($this->table)::$fieldUpper);
                 } else {
                     $this->nql->whereCondition(NQL::_AND, ucfirst($this->table)::$fieldUpper);
@@ -292,7 +292,7 @@ class Query extends Nogal implements \Iterator
                 $this->setQueryParam(':' . self::$fieldUpper, $this->answer->$fieldCamelCase(), self::$fieldUpperType);
             }
             $this->execute($this->nql);
-        } else if (is_array($this->answer) === true) {
+        } elseif (is_array($this->answer) === true) {
             foreach ($this->answer as $row) {
                 $set = '';
                 foreach ($set as $field => $data) {
@@ -324,10 +324,14 @@ class Query extends Nogal implements \Iterator
     }
 
     protected function orderBy($condition, $type_order = NQL::ASC): self
-    {}
+    {
+        return $this;
+    }
 
     protected function groupBy($condition): self
-    {}
+    {
+        return $this;
+    }
 
     /**
      *
@@ -426,7 +430,7 @@ class Query extends Nogal implements \Iterator
         if (count($matches[0]) === 0 and isset($this->behavior['deleted']) === true and $this->behavior['deleted'] === true) {
             // no encontró el where
             $this->nql->where("{$this->fieldDeleted} IS NULL ", true);
-        } else if (isset($this->behavior['deleted']) === true and $this->behavior['deleted'] === true) {
+        } elseif (isset($this->behavior['deleted']) === true and $this->behavior['deleted'] === true) {
             // encontró el where
             $this->nql->whereCondition(NQL::_AND, "{$this->fieldDeleted} IS NULL ", true);
         }

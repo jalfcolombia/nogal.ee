@@ -26,14 +26,14 @@ interface IDriver
 {
 
     /**
-     * 
+     *
      * @param string $columns
      * @return self
      */
     public function select(string $columns);
 
     /**
-     * 
+     *
      * @param string $table
      * @param string $columns
      * @return self
@@ -41,28 +41,28 @@ interface IDriver
     public function insert(string $table, string $columns);
 
     /**
-     * 
+     *
      * @param string $table
      * @return self
      */
     public function update(string $table);
 
     /**
-     * 
+     *
      * @param string $table
      * @return self
      */
     public function delete(string $table);
 
     /**
-     * 
+     *
      * @param string $table
      * @return self
      */
     public function from(string $table);
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition
      * @return self
@@ -70,7 +70,7 @@ interface IDriver
     public function join(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition
      * @return self
@@ -78,7 +78,7 @@ interface IDriver
     public function innerJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition [opcional]
      * @return self
@@ -86,7 +86,7 @@ interface IDriver
     public function naturalJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition [opcional]
      * @return self
@@ -94,7 +94,7 @@ interface IDriver
     public function naturalInnerJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition [opcional]
      * @return self
@@ -102,7 +102,7 @@ interface IDriver
     public function naturalLeftJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition [opcional]
      * @return self
@@ -110,7 +110,7 @@ interface IDriver
     public function naturalLeftOuterJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition [opcional]
      * @return self
@@ -118,7 +118,7 @@ interface IDriver
     public function naturalRightJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition [opcional]
      * @return self
@@ -126,7 +126,7 @@ interface IDriver
     public function naturalRightOuterJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition
      * @return self
@@ -134,7 +134,7 @@ interface IDriver
     public function leftJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition
      * @return self
@@ -142,7 +142,7 @@ interface IDriver
     public function leftOuterJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition
      * @return self
@@ -150,7 +150,7 @@ interface IDriver
     public function rightJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition
      * @return self
@@ -158,7 +158,7 @@ interface IDriver
     public function rightOuterJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition [opcional]
      * @return self
@@ -166,7 +166,7 @@ interface IDriver
     public function crossJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition [opcional]
      * @return self
@@ -174,7 +174,7 @@ interface IDriver
     public function fullJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $next_table
      * @param array $condition [opcional]
      * @return self
@@ -182,14 +182,14 @@ interface IDriver
     public function fullOuterJoin(string $next_table, array $condition = array());
     
     /**
-     * 
+     *
      * @param string $sql
      * @return self
      */
     public function union(string $sql);
     
     /**
-     * 
+     *
      * @param string $sql
      * @return self
      */
@@ -203,7 +203,7 @@ interface IDriver
     public function where(string $condition, bool $raw = false, string $logical_operator = '=');
 
     /**
-     * 
+     *
      * @param string $type_condition
      * @param string $condition
      * @param bool $raw
@@ -243,13 +243,13 @@ interface IDriver
     public function set($columns, bool $raw = false);
     
     /**
-     * 
+     *
      * @param string $field_list
      */
     public function groupBy(string $field_list);
     
     /**
-     * 
+     *
      * @param string $condition
      * @param bool $raw
      */
@@ -265,13 +265,13 @@ interface IDriver
     public function havingCondition(string $type_condition, string $condition, bool $raw = false, string $logical_operator = '=');
     
     /**
-     * 
+     *
      * @param string $text
      */
     public function addTextRaw(string $text);
 
     /**
-     * 
+     *
      * @return string
      */
     public function __toString();

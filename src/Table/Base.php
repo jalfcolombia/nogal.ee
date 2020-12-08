@@ -15,6 +15,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 namespace NogalEE\Table;
 
 use NogalEE\Nogal;
@@ -57,7 +58,7 @@ abstract class Base extends Nogal
         }
     }
 
-    /*
+    /**
      * public function select(string $table, string $select_columns, array $joins = array(), array $where = array(), ?string $group_by = null, array $having = array(), ?string $order_by = null, object $page = null, object $class_object = null): array
      * {
      * try {
@@ -146,7 +147,7 @@ abstract class Base extends Nogal
                 $data->raw = (isset($data->raw) === true) ? $data->raw : false;
                 if ($cicle === 0) {
                     $this->_nql->$type(((isset($data->condition) === true) ? $data->condition : $condition), $data->raw);
-                    $cicle ++;
+                    $cicle++;
                 } else {
                     $type_condition = "{$type}Condition";
                     if (is_array($data) === true) {

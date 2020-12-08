@@ -15,7 +15,11 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
+
 namespace NogalEE;
+
+use NogalEE\Cache\Cache;
+use NogalEE\Cache\Session;
 
 /**
  * Clase controladora de la conexión a la base de datos
@@ -71,8 +75,13 @@ class Nogal
      * @var \PDOStatement
      */
     private $stmt;
-
     private $sql;
+
+    /**
+     *
+     * @var Cache
+     */
+    private $cache;
 
     /**
      * Arreglo asociativo con los parámetros de configuración necesarios.<br><br>
@@ -110,6 +119,20 @@ class Nogal
         } elseif (is_bool($config['persistent']) === false) {
             throw new \RuntimeException('The value for the "persistent" option must be a boolean value.');
         }
+        if (isset($config['redis']) === false) {
+            $config['redis']['name'] = 'nogal.task.dev';
+            $config['redis']['db'] = 15;
+            $config['redis']['host'] = 'localhost';
+            $config['redis']['port'] = 6379;
+        }
+        $this->cache = new Cache(
+            new Session(
+                $config['redis']['name'],
+                $config['redis']['db'],
+                $config['redis']['host'],
+                $config['redis']['port']
+            )
+        );
         $this->config = $config;
     }
 
@@ -148,24 +171,26 @@ class Nogal
      */
     private function getDataSourceName(): string
     {
+        $answer = '';
         switch ($this->config['driver']) {
             case 'pgsql':
-                return $this->config['driver'] . ':host=' . $this->config['host'] . ';port=' . $this->config['port'] . ';dbname=' . $this->config['dbname'];
+                $answer = $this->config['driver'] . ':host=' . $this->config['host'] . ';port=' . $this->config['port'] . ';dbname=' . $this->config['dbname'];
                 break;
             case 'mysql':
                 if (isset($this->config['unix_socket']) === true) {
-                    return $this->config['driver'] . ':unix_socket=' . $this->config['unix_socket'] . ';dbname=' . $this->config['dbname'];
+                    $answer = $this->config['driver'] . ':unix_socket=' . $this->config['unix_socket'] . ';dbname=' . $this->config['dbname'];
                 } else {
-                    return $this->config['driver'] . ':host=' . $this->config['host'] . ';port=' . $this->config['port'] . ';dbname=' . $this->config['dbname'];
+                    $answer = $this->config['driver'] . ':host=' . $this->config['host'] . ';port=' . $this->config['port'] . ';dbname=' . $this->config['dbname'];
                 }
                 break;
             case 'sqlsrv':
-                return $this->config['driver'] . ':Server=' . $this->config['host'] . ';Database=' . $this->config['dbname'] . ';ConnectionPooling=' . ((isset($this->config['persistent']) and $this->config['persistent'] === true) ? 1 : 0);
+                $answer = $this->config['driver'] . ':Server=' . $this->config['host'] . ';Database=' . $this->config['dbname'] . ';ConnectionPooling=' . ((isset($this->config['persistent']) and $this->config['persistent'] === true) ? 1 : 0);
                 break;
             case 'oci':
-                return $this->config['driver'] . ':dbname=//' . $this->config['host'] . ':' . $this->config['port'] . '/' . $this->config['dbname'];
+                $answer = $this->config['driver'] . ':dbname=//' . $this->config['host'] . ':' . $this->config['port'] . '/' . $this->config['dbname'];
                 break;
         }
+        return $answer;
     }
 
     /**
@@ -197,17 +222,7 @@ class Nogal
             if ($class_object === null) {
                 $answer = $stmt->fetchAll(\PDO::FETCH_OBJ);
             } elseif (is_object($class_object) === true or class_exists($class_object) === true) {
-                $tmp = $stmt->fetchAll();
-                $i = 0;
-                $class_object = new $class_object($this->config);
-                foreach ($tmp as $row) {
-                    $answer[$i] = clone $class_object;
-                    foreach ($row as $column => $value) {
-                        $column = 'set' . str_replace("_", "", ucwords($column, "_"));
-                        $answer[$i]->$column($value);
-                    }
-                    $i ++;
-                }
+                $answer = $this->createObjectFormArray($stmt->fetchAll(), $class_object);
             } else {
                 throw new \PDOException('The object "' . $class_object . '" is not a valid object');
             }
@@ -215,6 +230,22 @@ class Nogal
         } catch (\PDOException $exc) {
             throw new \PDOException($exc->getMessage(), $exc->getCode(), $exc->getPrevious());
         }
+    }
+
+    private function createObjectFormArray(array $data, object $class_object): array
+    {
+        $answer = array();
+        $i = 0;
+        $class_object = new $class_object($this->config);
+        foreach ($data as $row) {
+            $answer[$i] = clone $class_object;
+            foreach ($row as $column => $value) {
+                $column = 'set' . str_replace("_", "", ucwords($column, "_"));
+                $answer[$i]->$column($value);
+            }
+            $i++;
+        }
+        return $answer;
     }
 
     /**
@@ -225,20 +256,22 @@ class Nogal
      */
     protected function detectDataType($value): int
     {
+        $answer = 0;
         switch (gettype($value)) {
             case 'string':
-                return self::PARAM_STR;
+                $answer = self::PARAM_STR;
                 break;
             case 'integer':
-                return self::PARAM_INT;
+                $answer = self::PARAM_INT;
                 break;
             case 'double':
-                return self::PARAM_INT;
+                $answer = self::PARAM_INT;
                 break;
             case 'boolean':
-                return self::PARAM_BOOL;
+                $answer = self::PARAM_BOOL;
                 break;
         }
+        return $answer;
     }
 
     /**
@@ -324,7 +357,7 @@ class Nogal
             // echo '<pre>';
             if ($GLOBALS['NogalEE.instance'] === null) {
                 $options = array(
-                    \PDO::ATTR_ERRMODE => \PDO::ERRMODE_EXCEPTION,
+                    \PDO::ATTR_ERRMODE            => \PDO::ERRMODE_EXCEPTION,
                     \PDO::ATTR_DEFAULT_FETCH_MODE => \PDO::FETCH_ASSOC
                 );
                 if ($this->config['driver'] !== 'sqlsrv') {
@@ -350,7 +383,7 @@ class Nogal
             $GLOBALS[$name] = 1;
             $this->getConection()->beginTransaction();
         } else {
-            $GLOBALS[$name] ++;
+            $GLOBALS[$name]++;
         }
         return $this;
     }
@@ -364,7 +397,7 @@ class Nogal
     {
         $name = 'beginTransactionNogalEE';
         if (isset($GLOBALS[$name]) === true) {
-            $GLOBALS[$name] --;
+            $GLOBALS[$name]--;
             if ($GLOBALS[$name] === 0) {
                 $this->getConection()->commit();
                 unset($GLOBALS[$name]);
@@ -382,7 +415,7 @@ class Nogal
     {
         $name = 'beginTransactionNogalEE';
         if (isset($GLOBALS[$name]) === true) {
-            $GLOBALS[$name] --;
+            $GLOBALS[$name]--;
             if ($GLOBALS[$name] === 0) {
                 $this->getConection()->rollBack();
                 unset($GLOBALS[$name]);
@@ -400,19 +433,47 @@ class Nogal
      * @return array
      * @throws \PDOException
      */
-    protected function query(string $sql, object $class_object = null, bool $debug = false): array
+    protected function query(string $sql, array $cache = array('cache' => false, 'time' => -1), object $class_object = null, bool $debug = false): array
     {
         try {
-            $this->sql = $sql;
-            $this->stmt = $this->getConection()->prepare($sql);
-            $this->bindParams();
-
-            if ($debug === true) {
-                $this->debugDumpParams();
+            if ($cache['cache'] !== false) {
+                if ($this->cache->has($cache['cache']) === true) {
+                    if ($debug === true) {
+                        $this->sql = $sql;
+                        $this->stmt = $this->getConection()->prepare($sql);
+                        $this->bindParams();
+                        $this->debugDumpParams();
+                    }
+                    if ($class_object === null) {
+                        return $this->cache->get($cache['cache']);
+                    } else {
+                        return $answer = $this->createObjectFormArray($this->cache->get($cache['cache']), $class_object);
+                    }
+                } else {
+                    $this->sql = $sql;
+                    $this->stmt = $this->getConection()->prepare($sql);
+                    $this->bindParams();
+                    if ($debug === true) {
+                        $this->debugDumpParams();
+                    }
+                    $this->stmt->execute();
+                    $this->cache->set($cache['cache'], $this->getResultsObject($this->stmt, null), isset($cache['time']) ? $cache['time'] : -1);
+                    if ($class_object === null) {
+                        return $this->cache->get($cache['cache']);
+                    } else {
+                        return $answer = $this->createObjectFormArray($this->cache->get($cache['cache']), $class_object);
+                    }
+                }
+            } else {
+                $this->sql = $sql;
+                $this->stmt = $this->getConection()->prepare($sql);
+                $this->bindParams();
+                if ($debug === true) {
+                    $this->debugDumpParams();
+                }
+                $this->stmt->execute();
+                return $this->getResultsObject($this->stmt, $class_object);
             }
-
-            $this->stmt->execute();
-            return $this->getResultsObject($this->stmt, $class_object);
         } catch (\PDOException $exc) {
             $this->throwNewExceptionFromPDOException($exc);
         } finally {
@@ -466,11 +527,11 @@ class Nogal
             '/(\sAS\s(\w+))/g',
             '/^select /i',
             '/ from (\w|\s|\W|\t|\r)+/i'
-        ), array(
+                ), array(
             '',
             '',
             ''
-        ), $this->stmt->queryString));
+                ), $this->stmt->queryString));
         if ($how_string === true) {
             return $fields;
         }
@@ -496,7 +557,7 @@ class Nogal
             $GLOBALS['cacheTempCamelCase'][$string] = str_replace(' ', '', ucwords(str_replace(array(
                 '_',
                 '.'
-            ), ' ', $string)));
+                        ), ' ', $string)));
         }
         return $GLOBALS['cacheTempCamelCase'][$string];
     }

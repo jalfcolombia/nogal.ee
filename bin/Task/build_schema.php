@@ -4,9 +4,10 @@ require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'Class' . D
 
 use TaskConsole\Interfaces\ITask;
 
-class build_schema implements ITask
+class BuildSchema implements ITask
 {
 
+    private $tab;
     private $params;
     private $float = array(
         'decimal',
@@ -61,6 +62,7 @@ class build_schema implements ITask
 
     public function __construct(array $params)
     {
+        $this->tab = (string)"    ";
         $this->params = $params;
         $config = array(
             'driver' => $params['driver'],
@@ -77,22 +79,29 @@ class build_schema implements ITask
     {
         $schema = $this->conn->getAllAttributes($this->params['dbname']);
         // print_r($schema['aprendiz']); exit();
-        foreach ($schema as $table_name => $objTable) {
+        foreach ($schema as $tableName => $objTable) {
             $outputBase = $this->params['output'] . 'Base' . DIRECTORY_SEPARATOR;
-            $this->generate_table($this->camelCase($table_name));
-            $this->create_dir_base($outputBase);
-            $this->generate_base($objTable->schema, $table_name, $objTable->columns, $objTable->pks, $objTable->fks, $outputBase);
+            $this->generateTable($this->camelCase($tableName));
+            $this->createDirBase($outputBase);
+            $this->generateBase(
+                $objTable->schema,
+                $tableName,
+                $objTable->columns,
+                $objTable->pks,
+                $objTable->fks,
+                $outputBase
+            );
         }
     }
 
-    private function create_dir_base(string $path): void
+    private function createDirBase(string $path): void
     {
         if (is_dir($path) === false) {
             mkdir($path);
         }
     }
 
-    private function file_save(string $path, string $name, string $content, bool $rewrite = false): void
+    private function fileSave(string $path, string $name, string $content, bool $rewrite = false): void
     {
         $newfile = $path . $name . '.php';
         if ($rewrite === true) {
@@ -102,17 +111,26 @@ class build_schema implements ITask
                 }
                 fclose($file);
             } else {
-                throw new Exception("Ocurrio un error y el archivo '{$name}' en la ubicación '{$path}' no pudo ser creado");
+                throw new Exception(
+                    "Ocurrio un error y el archivo '{$name}' en la ubicación
+                    '{$path}' no pudo ser creado"
+                );
             }
         } else {
             if (file_exists($newfile) === $rewrite) {
                 if ($file = fopen($newfile, "w")) {
                     if (fwrite($file, $content) === false) {
-                        throw new Exception("Ocurrio un error en el archivo '{$name}' al intentar escribirlo");
+                        throw new Exception(
+                            "Ocurrio un error en el archivo '{$name}'
+                            al intentar escribirlo"
+                        );
                     }
                     fclose($file);
                 } else {
-                    throw new Exception("Ocurrio un error y el archivo '{$name}' en la ubicación '{$path}' no pudo ser creado");
+                    throw new Exception(
+                        "Ocurrio un error y el archivo '{$name}'
+                        en la ubicación '{$path}' no pudo ser creado"
+                    );
                 }
             }
         }
@@ -122,65 +140,98 @@ class build_schema implements ITask
     {
         if (isset($GLOBALS['cacheTempCamelCase'][$string]) === false) {
             $GLOBALS['cacheTempCamelCase'][$string] = str_replace(
-                    ' ',
-                    '',
-                    ucwords(str_replace(array('_', '.'), ' ', $string))
+                ' ',
+                '',
+                ucwords(str_replace(array('_', '.'), ' ', $string))
             );
         }
         return $GLOBALS['cacheTempCamelCase'][$string];
     }
 
-    private function generate_table(string $table): void
+    private function generateTable(string $table): void
     {
-        $skeleton = (string) '';
-        require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'Skeleton' . DIRECTORY_SEPARATOR . 'Table.php';
-        $this->file_save($this->params['output'], $table, $skeleton);
+        $skeleton = (string)'';
+        $require = __DIR__ . DIRECTORY_SEPARATOR .
+            '..' . DIRECTORY_SEPARATOR .
+            'Skeleton' . DIRECTORY_SEPARATOR .
+            'Table.php';
+        require $require;
+        $this->fileSave($this->params['output'], $table, $skeleton);
     }
 
-    private function generate_base(?string $schema, string $table, stdClass $columns, stdClass $pks, stdClass $fks, string $outputBase): void
-    {
-        $tab = (string) "    ";
-        $namespace_details = $fields = $length = $type = $columns2 = $detail = $defaults = $getters_and_setters = $save = $no_save = $save_defaults = $save_details = (string) "";
-        $no_update = $update_defaults = $no_delete = $delete_defaults = $update_details = $where_update = $delete = $set_delete = $where_delete = $save_execute = (string) "";
-        $reset = (string) "";
+    private function generateBase(
+        ?string $schema,
+        string $table,
+        stdClass $columns,
+        stdClass $pks,
+        stdClass $fks,
+        string $outputBase
+    ): void {
+        $tab = (string)"    ";
+        $type =
+        $save =
+        $reset =
+        $fields =
+        $length =
+        $delete =
+        $detail =
+        $noSave =
+        $defaults =
+        $noUpdate =
+        $noDelete =
+        $setDelete =
+        $columnsTwo =
+        $saveDetails =
+        $whereUpdate =
+        $saveExecute =
+        $whereDelete =
+        $saveDefaults =
+        $updateDetails =
+        $updateDefaults =
+        $deleteDefaults =
+        $namespaceDetails =
+        $gettersAndSetters = (string)'';
         $tableCamelCase = $this->camelCase($table);
-        $table_details = array();
+        $tableDetails = array();
 
         // Tablas detalle (fk)
         foreach ($fks as $columnParent => $fk) {
-            if (isset($fk->childs) === true and count((array) $fk->childs) > 0) {
-                foreach ($fk->childs as $child) {
-                    $namespace_details .= "use Model\\{$this->camelCase($child->table)};" . PHP_EOL;
-                    $columns2 .= PHP_EOL . <<<PRC
-    /**
-     *
-     * @var {$this->camelCase($child->table)}
-     */
-    protected \${$child->table};
-PRC . PHP_EOL;
-                    $detail .= PHP_EOL . "{$tab}{$tab}\$this->{$child->table} = array();";
-                    $no_save .= "'{$child->table}', ";
-                    $no_update .= "'{$child->table}', ";
-                    $no_delete .= "'{$child->table}',";
-                    $table_details[] = $child->table;
-                    $save_details .= PHP_EOL . <<<SAVE_DETAILS
-            if (count(\$this->{$child->table}) > 0) {
-                /* @var \$detalle {$this->camelCase($child->table)} */
-                \$x = 0;
-                foreach (\$this->{$child->table} as \${$child->table}) {
-                    \$this->{$child->table}[\$x] = \${$child->table}->set{$this->camelCase($child->column)}(\$this->get{$this->camelCase($fk->column)}())->save(\$debug);
-                    \$x++;
-                }
-            }
-SAVE_DETAILS;
-                    $update_details .= PHP_EOL . <<<UPDATE_DETAILS
-            if (count(\$this->{$child->table}) > 0) {
-                /* @var \$detalle {$this->camelCase($child->table)} */
-                foreach (\$this->{$child->table} as \${$child->table}) {
-                    \${$child->table}->set{$this->camelCase($child->column)}(\$this->get{$this->camelCase($fk->column)}())->update(\$debug);
-                }
-            }
-UPDATE_DETAILS;
+            if (isset($fk->childs) === true and count((array)$fk->childs) > 0) {
+            // print_r($fks); exit();
+                foreach ($fk->childs as $index => $child) {
+                    if (isset($fk->childs[$index - 1]) === false or
+                        (
+                            isset($fk->childs[$index - 1]) === true and
+                            $fk->childs[$index - 1]->table !== $child->table
+                        )
+                    ) {
+                        $namespaceDetails .= $this->getUseNamespace($child->table);
+                        $tableDetails[] = array('name' => $child->table, 'type' => $child->table);
+                        $index = null;
+                    } elseif (isset($fk->childs[$index - 1]) === true
+                        and $fk->childs[$index - 1]->table === $child->table
+                    ) {
+                        $columnsTwo .= $this->getVariableDeclaration($child->table, $index);
+                        $tableDetails[] = array('name' => $child->table . $index, 'type' => $child->table);
+                    }
+
+                    $detail .= $this->getDetail($child->table, $index);
+                    $noSave .= $this->getNoSaveSkeleton($child->table, $index);
+                    $noUpdate .= $this->getNoUpdateSkeleton($child->table, $index);
+                    $noDelete .= $this->getNoDeleteSkeleton($child->table, $index);
+
+                    $saveDetails .= $this->getSaveDetailsSkeleton(
+                        $child->table,
+                        $child->column,
+                        $fk->column,
+                        $index
+                    );
+                    $updateDetails .= $this->getUpdateDetailsSkeleton(
+                        $child->table,
+                        $child->column,
+                        $fk->column,
+                        $index
+                    );
                 }
             }
         }
@@ -198,7 +249,7 @@ SEQ . PHP_EOL;
     public const SCHEMA = '{$schema}';
 TBL . PHP_EOL;
 
-        // FIELDS anD LENGTHS
+        // FIELDS and LENGTHS
         foreach ($columns as $column) {
             $columnMayus = strtoupper($column->column);
             $fields .= PHP_EOL . <<<FLD
@@ -218,77 +269,76 @@ LNG . PHP_EOL;
             }
 
             // TYPE
-            $type_param = $type_param_return = "";
+            $typeParam = $typeParamReturn = "";
             if (in_array($column->type, $this->float)) {
-                $type_param = "INT";
-                $type_param_return = "float";
+                $typeParam = "INT";
+                $typeParamReturn = "float";
             } elseif (in_array($column->type, $this->int)) {
-                $type_param = "INT";
-                $type_param_return = "int";
+                $typeParam = "INT";
+                $typeParamReturn = "int";
             } elseif (in_array($column->type, $this->str)) {
-                $type_param = "STR";
-                $type_param_return = "string";
+                $typeParam = "STR";
+                $typeParamReturn = "string";
                 if (in_array($column->type, $this->datetime)) {
-                    $type_param_return = "DateTime";
+                    $typeParamReturn = "DateTime";
                 }
             } elseif (in_array($column->type, $this->boo)) {
-                $type_param = "BOOL";
-                $type_param_return = "bool";
+                $typeParam = "BOOL";
+                $typeParamReturn = "bool";
             }
             $type .= PHP_EOL . <<<TYPE
     /**
      * Tipo de dato del campo "{$column->column}" para ser tratado por PDO
      */
-    public const TYPE_{$columnMayus} = self::PARAM_{$type_param};
+    public const TYPE_{$columnMayus} = self::PARAM_{$typeParam};
 TYPE . PHP_EOL;
 
             // protected columns
-            $columns2 .= PHP_EOL . <<<PRC
+            $columnsTwo .= PHP_EOL . <<<PRC
     /**
      *
-     * @var {$type_param_return}
+     * @var {$typeParamReturn}
      */
     protected \${$column->column};
 PRC . PHP_EOL;
 
-
             // dontwork for all behaviors
             if (isset($column->behaviors->dontwork) === true) {
-                $no_save .= "'{$column->column}', ";
-                $no_update .= "'{$column->column}', ";
+                $noSave .= "'{$column->column}', ";
+                $noUpdate .= "'{$column->column}', ";
             }
 
             if ($column->auto_increment === true) {
-                $no_save .= "'{$column->column}', ";
-                $no_update .= "'{$column->column}', ";
+                $noSave .= "'{$column->column}', ";
+                $noUpdate .= "'{$column->column}', ";
             }
 
             if (isset($column->behaviors->update) === true and isset($column->behaviors->default) === false) {
-                $no_save .= "'{$column->column}', ";
+                $noSave .= "'{$column->column}', ";
             }
 
             if (isset($column->behaviors->insert) === true and isset($column->behaviors->default) === false) {
-                $no_update .= "'{$column->column}', ";
+                $noUpdate .= "'{$column->column}', ";
             }
 
             if (isset($column->behaviors->delete) === true and isset($column->behaviors->default) === false) {
-                $no_delete .= "'{$column->column}',";
+                $noDelete .= "'{$column->column}',";
             }
 
             if (isset($column->behaviors->delete) === true) {
-                $set_delete .= PHP_EOL . <<<SET_DELETE
+                $setDelete .= PHP_EOL . <<<SET_DELETE
                     self::FIELD_{$columnMayus} => (object) array(
                         'value' => \$this->get{$columnCamelCase}(),
                         'type' => self::TYPE_{$columnMayus}
                     ),
 SET_DELETE;
-                $where_update .= PHP_EOL . <<<WHERE_UPDATE
+                $whereUpdate .= PHP_EOL . <<<WHERE_UPDATE
                 NQL::_AND => (object) array(
                     'condition' => self::FIELD_{$columnMayus} . ' IS NULL',
                     'raw' => true
                 ),
 WHERE_UPDATE;
-                $where_delete .= PHP_EOL . <<<WHERE_DELETE
+                $whereDelete .= PHP_EOL . <<<WHERE_DELETE
                     NQL::_AND => (object) array(
                         'condition' => self::FIELD_{$columnMayus} . ' IS NULL',
                         'raw' => true
@@ -297,26 +347,30 @@ WHERE_DELETE;
             }
 
             // RESET
-            $reset .= PHP_EOL . "{$tab}{$tab}\$this->{$column->column} = null;";
+            if ($typeParamReturn === 'DateTime') {
+                $reset .= PHP_EOL . "{$tab}{$tab}\$this->{$column->column} = new {$typeParamReturn}();";
+            } else {
+                $reset .= PHP_EOL . "{$tab}{$tab}\$this->{$column->column} = ({$typeParamReturn}) null;";
+            }
 
             // DEFAULTS
             if (isset($column->default) === false and isset($column->behaviors->default) === true) {
-                $flag = $this->found_default((array) $column->behaviors);
+                $flag = $this->foundDefault((array)$column->behaviors);
                 if ($flag === true) {
                     $defaults .= PHP_EOL . "{$tab}{$tab}\$this->{$column->column} = {$column->behaviors->default};";
                 }
 
                 // save with behaviors
                 if (isset($column->behaviors->insert) === true) {
-                    $no_update .= "'{$column->column}', ";
-                    if ($type_param_return === "DateTime") {
-                        $save_defaults .= PHP_EOL . <<<SAVE_DEFAULTS
+                    $noUpdate .= "'{$column->column}', ";
+                    if ($typeParamReturn === "DateTime") {
+                        $saveDefaults .= PHP_EOL . <<<SAVE_DEFAULTS
 {$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
 {$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(date(\$this->getConfigFormatDateTime()), \$this->getConfigFormatDateTime());
 {$tab}{$tab}{$tab}}
 SAVE_DEFAULTS;
                     } else {
-                        $save_defaults .= PHP_EOL . <<<SAVE_DEFAULTS
+                        $saveDefaults .= PHP_EOL . <<<SAVE_DEFAULTS
 {$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
 {$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}({$column->behaviors->default});
 {$tab}{$tab}{$tab}}
@@ -326,15 +380,15 @@ SAVE_DEFAULTS;
 
                 // update with behaviors
                 if (isset($column->behaviors->update) === true) {
-                    $no_save .= "'{$column->column}', ";
-                    if ($type_param_return === "DateTime") {
-                        $update_defaults .= PHP_EOL . <<<UPDATE_DEFAULTS
+                    $noSave .= "'{$column->column}', ";
+                    if ($typeParamReturn === "DateTime") {
+                        $updateDefaults .= PHP_EOL . <<<UPDATE_DEFAULTS
 {$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
 {$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(date(\$this->getConfigFormatDateTime()), \$this->getConfigFormatDateTime());
 {$tab}{$tab}{$tab}}
 UPDATE_DEFAULTS;
                     } else {
-                        $update_defaults .= PHP_EOL . <<<UPDATE_DEFAULTS
+                        $updateDefaults .= PHP_EOL . <<<UPDATE_DEFAULTS
 {$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
 {$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}({$column->behaviors->default});
 {$tab}{$tab}{$tab}}
@@ -344,19 +398,19 @@ UPDATE_DEFAULTS;
 
                 // delete with behaviors
                 if (isset($column->behaviors->delete) === true) {
-                    $no_save .= "'{$column->column}', ";
-                    $no_update .= "'{$column->column}', ";
-                    if ($type_param_return === "DateTime") {
-                        $delete_defaults .= PHP_EOL . <<<DELETE_DEFAULTS
-{$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
-{$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(date(\$this->getConfigFormatDateTime()), \$this->getConfigFormatDateTime());
-{$tab}{$tab}{$tab}}
+                    $noSave .= "'{$column->column}', ";
+                    $noUpdate .= "'{$column->column}', ";
+                    if ($typeParamReturn === "DateTime") {
+                        $deleteDefaults .= PHP_EOL . <<<DELETE_DEFAULTS
+{$tab}{$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
+{$tab}{$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(date(\$this->getConfigFormatDateTime()), \$this->getConfigFormatDateTime());
+{$tab}{$tab}{$tab}{$tab}}
 DELETE_DEFAULTS;
                     } else {
-                        $delete_defaults .= PHP_EOL . <<<DELETE_DEFAULTS
-{$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
-{$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}({$column->behaviors->default});
-{$tab}{$tab}{$tab}}
+                        $deleteDefaults .= PHP_EOL . <<<DELETE_DEFAULTS
+{$tab}{$tab}{$tab}{$tab}if (is_null(\$this->{$column->column})) {
+{$tab}{$tab}{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}({$column->behaviors->default});
+{$tab}{$tab}{$tab}{$tab}}
 DELETE_DEFAULTS;
                     }
                 }
@@ -364,8 +418,8 @@ DELETE_DEFAULTS;
 
             $getter = "return \$this->{$column->column};";
             $getterparam = "";
-            $type_param_return2 = ($type_param_return === "DateTime") ? "string" : $type_param_return;
-            $setterparam = "{$type_param_return2} \${$column->column}";
+            $typeParamReturnTwo = ($typeParamReturn === "DateTime") ? "string" : $typeParamReturn;
+            $setterparam = "{$typeParamReturnTwo} \${$column->column}";
             $setter = "\$this->{$column->column} = \${$column->column};";
             if (in_array($column->type, $this->datetime)) {
                 $getterparam = "string \$format = null";
@@ -374,13 +428,13 @@ DELETE_DEFAULTS;
                 $setter = "\$this->{$column->column} = new DateTime(\${$column->column}, \$format);";
             }
             // GETTER
-            $getters_and_setters .= PHP_EOL . PHP_EOL . <<<GETTER
+            $gettersAndSetters .= PHP_EOL . PHP_EOL . <<<GETTER
     /**
      * Obtiene el valor contenido en el campo "{$column->column}"
      *
-     * @return {$type_param_return}|null
+     * @return {$typeParamReturn}|null
      */
-    public function get{$columnCamelCase}({$getterparam}): ?{$type_param_return}
+    public function get{$columnCamelCase}({$getterparam}): ?{$typeParamReturn}
     {
         {$getter}
     }
@@ -389,13 +443,13 @@ GETTER;
             if (isset($column->behaviors->encrypt) === true) {
                 $setter = "\$this->{$column->column} = hash('{$column->behaviors->encrypt}', \${$column->column});";
             }
-            $param2 = ($type_param_return === "DateTime") ? PHP_EOL . "{$tab} * @param string \$format [opcional]" : null;
-            $param2type = ($type_param_return === "DateTime") ? "string" : $type_param_return;
-            $getters_and_setters .= PHP_EOL . PHP_EOL . <<<SETTER
+            $paramTwo = ($typeParamReturn === "DateTime") ? PHP_EOL . "{$tab} * @param string \$format [opcional]" : null;
+            $paramTwotype = ($typeParamReturn === "DateTime") ? "string" : $typeParamReturn;
+            $gettersAndSetters .= PHP_EOL . PHP_EOL . <<<SETTER
     /**
      * Setea un valor en la columna "{$column->column}"
      *
-     * @param {$param2type} \${$column->column}{$param2}
+     * @param {$paramTwotype} \${$column->column}{$paramTwo}
      *
      * @return \self
      */
@@ -406,18 +460,17 @@ GETTER;
     }
 SETTER;
             // HAS
-            if (count((array) $pks) > 0) {
+            if (count((array)$pks) > 0) {
                 foreach ($pks as $pk) {
                     if ($column->column === $pk->column) {
-
                         if ($column->auto_increment === true) {
-                            $save_execute .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(\$this->saveBase(self::TABLE, \$data, self::SEQUENCE, \$debug));";
+                            $saveExecute .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->set{$columnCamelCase}(\$this->saveBase(self::TABLE, \$data, self::SEQUENCE, \$debug));";
                         } else {
-                            $save_execute .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->saveBase(self::TABLE, \$data, self::SEQUENCE, \$debug);";
-                            $no_update .= "'{$column->column}', ";
+                            $saveExecute .= PHP_EOL . "{$tab}{$tab}{$tab}\$this->saveBase(self::TABLE, \$data, self::SEQUENCE, \$debug);";
+                            $noUpdate .= "'{$column->column}', ";
                         }
 
-                        $where_update .= PHP_EOL . <<<WHERE_UPDATE
+                        $whereUpdate .= PHP_EOL . <<<WHERE_UPDATE
                 (object) array(
                     'condition' => self::FIELD_{$columnMayus},
                     'value' => \$this->get{$columnCamelCase}(),
@@ -425,7 +478,7 @@ SETTER;
                     'raw' => false
                 ),
 WHERE_UPDATE;
-                        $where_delete .= PHP_EOL . <<<WHERE_DELETE
+                        $whereDelete .= PHP_EOL . <<<WHERE_DELETE
                     (object) array(
                         'condition' => self::FIELD_{$columnMayus},
                         'value' => \$this->get{$columnCamelCase}(),
@@ -433,7 +486,7 @@ WHERE_UPDATE;
                         'raw' => false
                     ),
 WHERE_DELETE;
-                        $getters_and_setters .= PHP_EOL . PHP_EOL . <<<HAS
+                        $gettersAndSetters .= PHP_EOL . PHP_EOL . <<<HAS
     /**
      * Comprueba la existencia de un valor en la columna "{$pk->column}"
      *
@@ -452,37 +505,40 @@ HAS;
             }
         }
 
-        if (count($table_details) > 0) {
-            foreach ($table_details as $table_detail) {
-                $tableDetailCamelCase = $this->camelCase($table_detail);
-                $getters_and_setters .= PHP_EOL . PHP_EOL . <<<GETTER_AND_SETTER
+        if (count($tableDetails) > 0) {
+            foreach ($tableDetails as $tableDetail) {
+                $tableTypeDetailCamelCase = $this->camelCase($tableDetail['type']);
+                $tableNameDetailCamelCase = $this->camelCase($tableDetail['name']);
+                $tableNameDetail = $tableDetail['name'];
+                $tableTypeDetail = $tableDetail['type'];
+                $gettersAndSetters .= PHP_EOL . PHP_EOL . <<<GETTER_AND_SETTER
     /**
-     * Obtiene un arreglo de objetos en relación a la tabla "{$table_detail}"
+     * Obtiene un arreglo de objetos en relación a la tabla "{$tableTypeDetail}"
      *
-     * @return array
+     * @return {$tableTypeDetailCamelCase}[]
      */
-    public function get{$tableDetailCamelCase}(): array
+    public function get{$tableNameDetailCamelCase}(): array
     {
-        return \$this->{$table_detail};
+        return \$this->{$tableNameDetail};
     }
 
     /**
-     * Setea un objeto en relación a la tabla "{$table_detail}"
+     * Setea un objeto en relación a la tabla "{$tableTypeDetail}"
      *
-     * @param {$tableDetailCamelCase} {$table_detail}
+     * @param {$tableTypeDetailCamelCase} {$tableNameDetail}
      *
      * @return \self
      */
-    public function set{$tableDetailCamelCase}({$tableDetailCamelCase} \${$table_detail}): self
+    public function set{$tableNameDetailCamelCase}({$tableTypeDetailCamelCase} \${$tableNameDetail}): self
     {
-        \$this->{$table_detail}[] = \${$table_detail};
+        \$this->{$tableNameDetail}[] = \${$tableNameDetail};
         return \$this;
     }
 GETTER_AND_SETTER;
             }
         }
 
-        $no_save = trim($no_save, ", ");
+        $noSave = trim($noSave, ", ");
         $save = PHP_EOL . PHP_EOL . <<<SAVE
     /**
      * Guarda un registro en la tabla "{$table}"
@@ -495,8 +551,8 @@ GETTER_AND_SETTER;
     public function save(bool \$debug = false): self
     {
         try {
-            \$this->beginTransaction();{$save_defaults}
-            \$data = \$this->createDataForSaveOrUpdate(array({$no_save}));{$save_execute}{$save_details}
+            \$this->beginTransaction();{$saveDefaults}
+            \$data = \$this->createDataForSaveOrUpdate(array({$noSave}));{$saveExecute}{$saveDetails}
             \$this->commit();
             return \$this;
         } catch (\Exception \$exc) {
@@ -506,9 +562,9 @@ GETTER_AND_SETTER;
     }
 SAVE;
 
-        $no_update = trim($no_update, ", ");
-        $where_update = trim($where_update, ",");
-        $where_delete = trim($where_delete, ",");
+        $noUpdate = trim($noUpdate, ", ");
+        $whereUpdate = trim($whereUpdate, ",");
+        $whereDelete = trim($whereDelete, ",");
         $update = PHP_EOL . <<<UPDATE
     /**
      * Actualiza un registro en la tabla "{$table}"
@@ -522,11 +578,11 @@ SAVE;
     public function update(array \$updateColumnsToNULL = array(), bool \$debug = false): self
     {
         try {
-            \$this->beginTransaction();{$update_defaults}
-            \$set = \$this->createDataForSaveOrUpdate(array({$no_update}), \$updateColumnsToNULL);
-            \$where = array({$where_update}
+            \$this->beginTransaction();{$updateDefaults}
+            \$set = \$this->createDataForSaveOrUpdate(array({$noUpdate}), \$updateColumnsToNULL);
+            \$where = array({$whereUpdate}
             );
-            parent::updateBase(self::TABLE, \$set, \$where, \$debug);{$update_details}
+            parent::updateBase(self::TABLE, \$set, \$where, \$debug);{$updateDetails}
             \$this->commit();
             return \$this;
         } catch (\Exception \$exc) {
@@ -536,7 +592,7 @@ SAVE;
     }
 UPDATE;
 
-        $set_delete = trim($set_delete, ",");
+        $setDelete = trim($setDelete, ",");
         $delete = <<<DELETE
     /**
      * Borra un registro en la tabla "{$table}"
@@ -553,14 +609,14 @@ UPDATE;
     {
         try {
             \$this->beginTransaction();
-            if (\$logical === true) {{$delete_defaults}
-                \$set = array({$set_delete}
+            if (\$logical === true) {{$deleteDefaults}
+                \$set = array({$setDelete}
                 );
-                \$where = array({$where_delete}
+                \$where = array({$whereDelete}
                 );
                 parent::updateBase(self::TABLE, \$set, \$where, \$debug);
             } else {
-                \$where = array({$where_delete}
+                \$where = array({$whereDelete}
                 );
                 parent::deleteBase(self::TABLE, \$where, \$debug);
             }
@@ -572,12 +628,16 @@ UPDATE;
         }
     }
 DELETE;
-        $skeleton = (string) '';
-        require __DIR__ . DIRECTORY_SEPARATOR . '..' . DIRECTORY_SEPARATOR . 'Skeleton' . DIRECTORY_SEPARATOR . 'TableBase.php';
-        $this->file_save($outputBase, $tableCamelCase . "Base", $skeleton, true);
+        $skeleton = (string)'';
+        $require = __DIR__ . DIRECTORY_SEPARATOR .
+            '..' . DIRECTORY_SEPARATOR .
+            'Skeleton' . DIRECTORY_SEPARATOR .
+            'TableBase.php';
+        require $require;
+        $this->fileSave($outputBase, $tableCamelCase . "Base", $skeleton, true);
     }
 
-    private function found_default(array $behaviors): bool
+    private function foundDefault(array $behaviors): bool
     {
         $answer = true;
         foreach ($behaviors as $key => $value) {
@@ -596,4 +656,72 @@ DELETE;
         return $answer;
     }
 
+    private function getUseNamespace(string $table): string
+    {
+        return "use Model\\{$this->camelCase($table)};" . PHP_EOL;
+    }
+
+    private function getVariableDeclaration(string $table, $suffix = null): string
+    {
+        $tableName = ($suffix === null) ? $table : $table . $suffix;
+        return PHP_EOL . <<<PRC
+        /**
+         *
+         * @var {$this->camelCase($table)}[]
+         */
+        protected \${$tableName};
+PRC . PHP_EOL;
+    }
+
+    private function getDetail(string $table, $sufix = null): string
+    {
+        $table = ($sufix === null) ? $table : $table . $sufix;
+        return PHP_EOL . "{$this->tab}{$this->tab}\$this->{$table} = array();";
+    }
+
+    private function getNoSaveSkeleton(string $table, $sufix = null): string
+    {
+        $table = ($sufix === null) ? $table : $table . $sufix;
+        return "'{$table}', ";
+    }
+
+    private function getNoUpdateSkeleton(string $table, $sufix = null): string
+    {
+        $table = ($sufix === null) ? $table : $table . $sufix;
+        return "'{$table}', ";
+    }
+
+    private function getNoDeleteSkeleton(string $table, $sufix = null): string
+    {
+        $table = ($sufix === null) ? $table : $table . $sufix;
+        return "'{$table}',";
+    }
+
+    private function getSaveDetailsSkeleton(string $table, string $column, string $fkColumn, $sufix = null): string
+    {
+        $table = ($sufix === null) ? $table : $table . $sufix;
+        return PHP_EOL . <<<SAVE_DETAILS
+            if (count(\$this->{$table}) > 0) {
+                \$x = 0;
+                foreach (\$this->{$table} as \${$table}) {
+                    \$this->{$table}[\$x] = \${$table}->set{$this->camelCase($column)}(\$this->get{$this->camelCase($fkColumn)}())
+                        ->save(\$debug);
+                    \$x++;
+                }
+            }
+SAVE_DETAILS;
+    }
+
+    private function getUpdateDetailsSkeleton(string $table, string $column, string $fkColumn, $sufix = null): string
+    {
+        $table = ($sufix === null) ? $table : $table . $sufix;
+        return PHP_EOL . <<<UPDATE_DETAILS
+            if (count(\$this->{$table}) > 0) {
+                foreach (\$this->{$table} as \${$table}) {
+                    \${$table}->set{$this->camelCase($column)}(\$this->get{$this->camelCase($fkColumn)}())
+                        ->update(array(), \$debug);
+                }
+            }
+UPDATE_DETAILS;
+    }
 }

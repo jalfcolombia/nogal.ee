@@ -1,6 +1,7 @@
 {
   "require": {
     "php": ">=7.3.0",
+    "ext-redis": "*",
     "sena/task_console": "^0.0.2",
     "codedungeon/php-cli-colors": "^1.10"
   },

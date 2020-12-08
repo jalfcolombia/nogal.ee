@@ -14,7 +14,6 @@ class {$table} extends {$table}Base
     {
         parent::__construct(\$GLOBALS['config']);
     }
-
 }
 
 skeleton;

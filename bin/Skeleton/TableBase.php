@@ -8,7 +8,7 @@ namespace Model\Base;
 use NogalEE\Table\Base;
 use NogalEE\DataType\DateTime;
 use NogalEE\NQL;
-{$namespace_details}
+{$namespaceDetails}
 abstract class {$tableCamelCase}Base extends Base
 {
 {$sequence}{$schema}
@@ -16,11 +16,11 @@ abstract class {$tableCamelCase}Base extends Base
      * Nombre de la tabla "{$table}" en base de datos
      */
     public const TABLE = self::SCHEMA . '.' . '{$table}';
-{$fields}{$length}{$type}{$columns2}
+{$fields}{$length}{$type}{$columnsTwo}
     public function __construct(array \$config)
     {
         parent::__construct(\$config);{$detail}{$defaults}
-    }{$getters_and_setters}{$save}
+    }{$gettersAndSetters}{$save}
 {$update}
 
 {$delete}
@@ -46,7 +46,7 @@ abstract class {$tableCamelCase}Base extends Base
             foreach (\$updateColumnsToNULL as \$col) {
                 if (\$column === \$col) {
                     \$data[constant("self::\$FIELD")] = (object) array(
-                        'value' => NULL,
+                        'value' => null,
                         'type' => \\PDO::PARAM_NULL
                     );
                     \$this->\$column = null;
@@ -68,7 +68,6 @@ abstract class {$tableCamelCase}Base extends Base
     {{$reset}{$detail}{$defaults}
         return \$this;
     }
-
 }
 
 skeleton;
